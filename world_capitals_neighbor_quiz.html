@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World Capitals Neighbor Quiz</title>
+  <style>
+    :root { --blue:#1f6feb; --green:#22a06b; --blue-700:#1156c3; --green-700:#1a7f54; --text:#e6f0ff; --muted:#b8d3ff }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,sans-serif;color:var(--text);background:linear-gradient(135deg,var(--blue) 0%,var(--green) 100%) fixed;display:grid;place-items:center;padding:24px}
+    .app{width:100%;max-width:760px;background:rgba(6,17,31,.85);border:1px solid rgba(255,255,255,.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
+    header{padding:20px 24px;background:linear-gradient(90deg,rgba(31,111,235,.2),rgba(34,160,107,.2));border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .title{font-size:20px;font-weight:700}
+    .progress{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:600}
+    .bar{position:relative;height:8px;width:160px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+    .bar>span{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,var(--blue),var(--green))}
+    main{padding:24px}
+    .card{background:rgba(10,29,50,.8);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px}
+    .question{font-size:22px;font-weight:700;margin:0 0 16px}
+    .subtitle{color:var(--muted);margin-bottom:18px}
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .option{padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-weight:650;text-align:left;user-select:none}
+    .option.correct{background:rgba(34,160,107,.18);border-color:var(--green)}
+    .option.wrong{background:rgba(31,111,235,.18);border-color:var(--blue)}
+    .option.disabled{pointer-events:none;opacity:.8}
+    .footer{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted)}
+    .btn{padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(90deg,var(--blue-700),var(--green-700));color:#fff;font-weight:700;cursor:pointer}
+    .result{text-align:center;padding:36px 24px 48px}
+    .score{font-size:56px;font-weight:800;background:linear-gradient(90deg,var(--blue),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .wrong-list{margin-top:20px;text-align:left}
+    @media (max-width:560px){.options{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="title">Capitals of Neighboring Countries Quiz</div>
+    <div class="progress">
+      <div id="counter">Setup</div>
+      <div class="bar"><span id="barFill"></span></div>
+    </div>
+  </header>
+  <main>
+    <section class="card" id="setup">
+      <p class="question">How many questions do you want in the quiz?</p>
+      <div class="options" id="setupOptions"></div>
+    </section>
+
+    <section class="card" id="quiz" style="display:none">
+      <p class="question" id="question"></p>
+      <p class="subtitle">Pick the correct capital, three other options come from neighboring countries.</p>
+      <div class="options" id="options"></div>
+      <div class="footer">
+        <div id="feedback"></div>
+        <button id="nextBtn" class="btn" disabled>Next</button>
+      </div>
+    </section>
+
+    <section class="card result" id="result" style="display:none">
+      <h2>Result</h2>
+      <div class="score" id="finalScore"></div>
+      <p id="remark"></p>
+      <div class="wrong-list" id="wrongList"></div>
+      <button id="restartBtn" class="btn" style="margin-top:16px">Play again</button>
+    </section>
+  </main>
+</div>
+<script>
+  // Expanded dataset, includes many countries so 25 unique questions are possible
+  const countryData = {
+    // Europe
+    "France": { capital: "Paris", neighbors: ["Belgium","Luxembourg","Germany","Switzerland","Italy","Spain","Andorra","Monaco"] },
+    "Germany": { capital: "Berlin", neighbors: ["Denmark","Poland","Czechia","Austria","Switzerland","France","Luxembourg","Belgium","Netherlands"] },
+    "Poland": { capital: "Warsaw", neighbors: ["Germany","Czechia","Slovakia","Ukraine","Belarus","Lithuania","Russia"] },
+    "Czechia": { capital: "Prague", neighbors: ["Germany","Poland","Slovakia","Austria"] },
+    "Austria": { capital: "Vienna", neighbors: ["Germany","Czechia","Slovakia","Hungary","Slovenia","Italy","Switzerland","Liechtenstein"] },
+    "Italy": { capital: "Rome", neighbors: ["France","Switzerland","Austria","Slovenia","San Marino","Vatican City"] },
+    "Spain": { capital: "Madrid", neighbors: ["Portugal","France","Andorra","Gibraltar"] },
+    "Portugal": { capital: "Lisbon", neighbors: ["Spain"] },
+    "Switzerland": { capital: "Bern", neighbors: ["France","Germany","Austria","Liechtenstein","Italy"] },
+    "Belgium": { capital: "Brussels", neighbors: ["France","Luxembourg","Germany","Netherlands"] },
+    "Netherlands": { capital: "Amsterdam", neighbors: ["Belgium","Germany"] },
+    "Luxembourg": { capital: "Luxembourg", neighbors: ["Belgium","France","Germany"] },
+    "Denmark": { capital: "Copenhagen", neighbors: ["Germany"] },
+    "Norway": { capital: "Oslo", neighbors: ["Sweden","Finland","Russia"] },
+    "Sweden": { capital: "Stockholm", neighbors: ["Norway","Finland"] },
+    "Finland": { capital: "Helsinki", neighbors: ["Sweden","Norway","Russia"] },
+    "Ukraine": { capital: "Kyiv", neighbors: ["Poland","Slovakia","Hungary","Romania","Moldova","Belarus","Russia"] },
+    "Belarus": { capital: "Minsk", neighbors: ["Latvia","Lithuania","Poland","Russia","Ukraine"] },
+    "Lithuania": { capital: "Vilnius", neighbors: ["Latvia","Belarus","Poland","Russia"] },
+    "Latvia": { capital: "Riga", neighbors: ["Estonia","Russia","Belarus","Lithuania"] },
+    "Estonia": { capital: "Tallinn", neighbors: ["Latvia","Russia"] },
+    "Slovakia": { capital: "Bratislava", neighbors: ["Czechia","Poland","Ukraine","Hungary","Austria"] },
+    "Hungary": { capital: "Budapest", neighbors: ["Slovakia","Ukraine","Romania","Serbia","Croatia","Slovenia","Austria"] },
+    "Romania": { capital: "Bucharest", neighbors: ["Ukraine","Moldova","Bulgaria","Serbia","Hungary"] },
+    "Bulgaria": { capital: "Sofia", neighbors: ["Romania","Serbia","North Macedonia","Greece","Turkey"] },
+    "Serbia": { capital: "Belgrade", neighbors: ["Hungary","Romania","Bulgaria","North Macedonia","Croatia","Bosnia and Herzegovina","Montenegro","Kosovo"] },
+    "Croatia": { capital: "Zagreb", neighbors: ["Slovenia","Hungary","Serbia","Bosnia and Herzegovina","Montenegro"] },
+    "Slovenia": { capital: "Ljubljana", neighbors: ["Italy","Austria","Hungary","Croatia"] },
+    "Bosnia and Herzegovina": { capital: "Sarajevo", neighbors: ["Croatia","Serbia","Montenegro"] },
+    "Montenegro": { capital: "Podgorica", neighbors: ["Croatia","Bosnia and Herzegovina","Serbia","Kosovo","Albania"] },
+    "Albania": { capital: "Tirana", neighbors: ["Montenegro","Kosovo","North Macedonia","Greece"] },
+    "North Macedonia": { capital: "Skopje", neighbors: ["Kosovo","Serbia","Bulgaria","Greece","Albania"] },
+    "Greece": { capital: "Athens", neighbors: ["Albania","North Macedonia","Bulgaria","Turkey"] },
+    "Turkey": { capital: "Ankara", neighbors: ["Greece","Bulgaria","Georgia","Armenia","Azerbaijan","Iran","Iraq","Syria"] },
+    "Moldova": { capital: "Chișinău", neighbors: ["Romania","Ukraine"] },
+    "Kosovo": { capital: "Pristina", neighbors: ["Serbia","Montenegro","Albania","North Macedonia"] },
+    "Georgia": { capital: "Tbilisi", neighbors: ["Russia","Azerbaijan","Armenia","Turkey"] },
+    "Armenia": { capital: "Yerevan", neighbors: ["Georgia","Azerbaijan","Turkey","Iran"] },
+    "Azerbaijan": { capital: "Baku", neighbors: ["Russia","Georgia","Armenia","Iran","Turkey"] },
+
+    // Africa
+    "Morocco": { capital: "Rabat", neighbors: ["Algeria","Spain","Western Sahara"] },
+    "Algeria": { capital: "Algiers", neighbors: ["Morocco","Western Sahara","Mauritania","Mali","Niger","Libya","Tunisia"] },
+    "Tunisia": { capital: "Tunis", neighbors: ["Algeria","Libya"] },
+    "Libya": { capital: "Tripoli", neighbors: ["Tunisia","Algeria","Niger","Chad","Sudan","Egypt"] },
+    "Egypt": { capital: "Cairo", neighbors: ["Libya","Sudan","Israel","Jordan"] },
+    "Sudan": { capital: "Khartoum", neighbors: ["Egypt","Libya","Chad","Central African Republic","South Sudan","Ethiopia","Eritrea"] },
+    "South Sudan": { capital: "Juba", neighbors: ["Sudan","Ethiopia","Kenya","Uganda","Democratic Republic of the Congo","Central African Republic"] },
+    "Chad": { capital: "N'Djamena", neighbors: ["Libya","Sudan","Central African Republic","Cameroon","Nigeria","Niger"] },
+    "Niger": { capital: "Niamey", neighbors: ["Algeria","Libya","Chad","Nigeria","Benin","Burkina Faso","Mali"] },
+    "Mali": { capital: "Bamako", neighbors: ["Mauritania","Algeria","Niger","Burkina Faso","Côte d'Ivoire","Guinea","Senegal"] },
+    "Burkina Faso": { capital: "Ouagadougou", neighbors: ["Mali","Niger","Benin","Togo","Ghana","Côte d'Ivoire"] },
+    "Ghana": { capital: "Accra", neighbors: ["Côte d'Ivoire","Burkina Faso","Togo"] },
+    "Côte d'Ivoire": { capital: "Yamoussoukro", neighbors: ["Liberia","Guinea","Mali","Burkina Faso","Ghana"] },
+    "Togo": { capital: "Lomé", neighbors: ["Ghana","Burkina Faso","Benin"] },
+    "Benin": { capital: "Porto-Novo", neighbors: ["Togo","Burkina Faso","Niger","Nigeria"] },
+    "Nigeria": { capital: "Abuja", neighbors: ["Benin","Niger","Chad","Cameroon"] },
+    "Cameroon": { capital: "Yaoundé", neighbors: ["Nigeria","Chad","Central African Republic","Republic of the Congo","Gabon","Equatorial Guinea"] },
+    "Central African Republic": { capital: "Bangui", neighbors: ["Chad","Sudan","South Sudan","Democratic Republic of the Congo","Republic of the Congo","Cameroon"] },
+    "Republic of the Congo": { capital: "Brazzaville", neighbors: ["Gabon","Cameroon","Central African Republic","Democratic Republic of the Congo","Angola"] },
+    "Democratic Republic of the Congo": { capital: "Kinshasa", neighbors: ["Republic of the Congo","Central African Republic","South Sudan","Uganda","Rwanda","Burundi","Tanzania","Zambia","Angola"] },
+    "Uganda": { capital: "Kampala", neighbors: ["South Sudan","Kenya","Tanzania","Rwanda","Democratic Republic of the Congo"] },
+    "Kenya": { capital: "Nairobi", neighbors: ["Ethiopia","South Sudan","Uganda","Tanzania","Somalia"] },
+    "Tanzania": { capital: "Dodoma", neighbors: ["Kenya","Uganda","Rwanda","Burundi","Democratic Republic of the Congo","Zambia","Malawi","Mozambique"] },
+    "Rwanda": { capital: "Kigali", neighbors: ["Uganda","Tanzania","Burundi","Democratic Republic of the Congo"] },
+    "Burundi": { capital: "Gitega", neighbors: ["Rwanda","Tanzania","Democratic Republic of the Congo"] },
+    "Zambia": { capital: "Lusaka", neighbors: ["Democratic Republic of the Congo","Tanzania","Malawi","Mozambique","Zimbabwe","Botswana","Namibia","Angola"] },
+    "Zimbabwe": { capital: "Harare", neighbors: ["Zambia","Mozambique","South Africa","Botswana"] },
+    "Mozambique": { capital: "Maputo", neighbors: ["Tanzania","Malawi","Zambia","Zimbabwe","South Africa","Eswatini"] },
+    "South Africa": { capital: "Pretoria", neighbors: ["Namibia","Botswana","Zimbabwe","Mozambique","Eswatini","Lesotho"] },
+    "Namibia": { capital: "Windhoek", neighbors: ["Angola","Zambia","Botswana","South Africa"] },
+    "Botswana": { capital: "Gaborone", neighbors: ["Namibia","Zambia","Zimbabwe","South Africa"] },
+    "Ethiopia": { capital: "Addis Ababa", neighbors: ["Eritrea","Djibouti","Somalia","Kenya","South Sudan","Sudan"] },
+    "Somalia": { capital: "Mogadishu", neighbors: ["Djibouti","Ethiopia","Kenya"] },
+    "Eritrea": { capital: "Asmara", neighbors: ["Sudan","Ethiopia","Djibouti"] },
+    "Senegal": { capital: "Dakar", neighbors: ["Mauritania","Mali","Guinea","Guinea-Bissau","The Gambia"] },
+    "Guinea": { capital: "Conakry", neighbors: ["Guinea-Bissau","Senegal","Mali","Sierra Leone","Liberia","Côte d'Ivoire"] },
+    "Mauritania": { capital: "Nouakchott", neighbors: ["Western Sahara","Algeria","Mali","Senegal"] },
+    "Angola": { capital: "Luanda", neighbors: ["Democratic Republic of the Congo","Republic of the Congo","Namibia","Zambia"] },
+    "Gabon": { capital: "Libreville", neighbors: ["Equatorial Guinea","Cameroon","Republic of the Congo"] },
+    "Equatorial Guinea": { capital: "Malabo", neighbors: ["Cameroon","Gabon"] },
+    "Malawi": { capital: "Lilongwe", neighbors: ["Tanzania","Mozambique","Zambia"] },
+
+    // Americas
+    "United States": { capital: "Washington, D.C.", neighbors: ["Canada","Mexico"] },
+    "Canada": { capital: "Ottawa", neighbors: ["United States"] },
+    "Mexico": { capital: "Mexico City", neighbors: ["United States","Guatemala","Belize"] },
+    "Guatemala": { capital: "Guatemala City", neighbors: ["Mexico","Belize","Honduras","El Salvador"] },
+    "Belize": { capital: "Belmopan", neighbors: ["Mexico","Guatemala"] },
+    "Honduras": { capital: "Tegucigalpa", neighbors: ["Guatemala","El Salvador","Nicaragua"] },
+    "El Salvador": { capital: "San Salvador", neighbors: ["Guatemala","Honduras"] },
+    "Nicaragua": { capital: "Managua", neighbors: ["Honduras","Costa Rica"] },
+    "Costa Rica": { capital: "San José", neighbors: ["Nicaragua","Panama"] },
+    "Panama": { capital: "Panama City", neighbors: ["Costa Rica","Colombia"] },
+    "Colombia": { capital: "Bogotá", neighbors: ["Panama","Venezuela","Brazil","Peru","Ecuador"] },
+    "Venezuela": { capital: "Caracas", neighbors: ["Colombia","Brazil","Guyana"] },
+    "Ecuador": { capital: "Quito", neighbors: ["Colombia","Peru"] },
+    "Peru": { capital: "Lima", neighbors: ["Ecuador","Colombia","Brazil","Bolivia","Chile"] },
+    "Bolivia": { capital: "La Paz", neighbors: ["Peru","Brazil","Paraguay","Argentina","Chile"] },
+    "Brazil": { capital: "Brasília", neighbors: ["Guyana","Venezuela","Colombia","Peru","Bolivia","Paraguay","Argentina","Uruguay","Suriname"] },
+    "Paraguay": { capital: "Asunción", neighbors: ["Bolivia","Brazil","Argentina"] },
+    "Uruguay": { capital: "Montevideo", neighbors: ["Brazil","Argentina"] },
+    "Argentina": { capital: "Buenos Aires", neighbors: ["Chile","Bolivia","Paraguay","Brazil","Uruguay"] },
+    "Chile": { capital: "Santiago", neighbors: ["Peru","Bolivia","Argentina"] },
+    "Guyana": { capital: "Georgetown", neighbors: ["Venezuela","Brazil","Suriname"] },
+    "Suriname": { capital: "Paramaribo", neighbors: ["Guyana","Brazil"] },
+
+    // Asia
+    "Russia": { capital: "Moscow", neighbors: ["Norway","Finland","Estonia","Latvia","Lithuania","Poland","Belarus","Ukraine","Georgia","Azerbaijan","Kazakhstan","China","Mongolia","North Korea"] },
+    "China": { capital: "Beijing", neighbors: ["Mongolia","Russia","North Korea","Vietnam","Laos","Myanmar","India","Bhutan","Nepal","Pakistan","Afghanistan","Tajikistan","Kyrgyzstan","Kazakhstan"] },
+    "India": { capital: "New Delhi", neighbors: ["Pakistan","China","Nepal","Bhutan","Bangladesh","Myanmar"] },
+    "Pakistan": { capital: "Islamabad", neighbors: ["Afghanistan","Iran","India","China"] },
+    "Afghanistan": { capital: "Kabul", neighbors: ["Turkmenistan","Uzbekistan","Tajikistan","China","Pakistan","Iran"] },
+    "Kazakhstan": { capital: "Astana", neighbors: ["Russia","China","Kyrgyzstan","Uzbekistan","Turkmenistan"] },
+    "Uzbekistan": { capital: "Tashkent", neighbors: ["Kazakhstan","Kyrgyzstan","Tajikistan","Afghanistan","Turkmenistan"] },
+    "Kyrgyzstan": { capital: "Bishkek", neighbors: ["Kazakhstan","Uzbekistan","Tajikistan","China"] },
+    "Tajikistan": { capital: "Dushanbe", neighbors: ["Uzbekistan","Kyrgyzstan","China","Afghanistan"] },
+    "Turkmenistan": { capital: "Ashgabat", neighbors: ["Kazakhstan","Uzbekistan","Afghanistan","Iran"] },
+    "Iran": { capital: "Tehran", neighbors: ["Iraq","Turkey","Armenia","Azerbaijan","Turkmenistan","Afghanistan","Pakistan"] },
+    "Iraq": { capital: "Baghdad", neighbors: ["Turkey","Iran","Kuwait","Saudi Arabia","Jordan","Syria"] },
+    "Syria": { capital: "Damascus", neighbors: ["Turkey","Iraq","Jordan","Israel","Lebanon"] },
+    "Jordan": { capital: "Amman", neighbors: ["Syria","Iraq","Saudi Arabia","Israel"] },
+    "Saudi Arabia": { capital: "Riyadh", neighbors: ["Jordan","Iraq","Kuwait","Qatar","United Arab Emirates","Oman","Yemen","Bahrain"] },
+    "Israel": { capital: "Jerusalem", neighbors: ["Lebanon","Syria","Jordan","Egypt"] },
+    "Lebanon": { capital: "Beirut", neighbors: ["Syria","Israel"] },
+    "Vietnam": { capital: "Hanoi", neighbors: ["China","Laos","Cambodia"] },
+    "Laos": { capital: "Vientiane", neighbors: ["China","Vietnam","Cambodia","Thailand","Myanmar"] },
+    "Thailand": { capital: "Bangkok", neighbors: ["Myanmar","Laos","Cambodia","Malaysia"] },
+    "Myanmar": { capital: "Naypyidaw", neighbors: ["India","Bangladesh","China","Laos","Thailand"] },
+    "Cambodia": { capital: "Phnom Penh", neighbors: ["Thailand","Laos","Vietnam"] },
+    "Malaysia": { capital: "Kuala Lumpur", neighbors: ["Thailand","Indonesia","Brunei"] },
+    "Indonesia": { capital: "Jakarta", neighbors: ["Malaysia","Papua New Guinea","Timor-Leste"] },
+    "Nepal": { capital: "Kathmandu", neighbors: ["India","China"] },
+    "Bhutan": { capital: "Thimphu", neighbors: ["India","China"] },
+    "Mongolia": { capital: "Ulaanbaatar", neighbors: ["Russia","China"] },
+    "Bangladesh": { capital: "Dhaka", neighbors: ["India","Myanmar"] },
+    "North Korea": { capital: "Pyongyang", neighbors: ["China","Russia","South Korea"] },
+    "South Korea": { capital: "Seoul", neighbors: ["North Korea"] },
+    "United Arab Emirates": { capital: "Abu Dhabi", neighbors: ["Saudi Arabia","Oman","Qatar"] },
+    "Qatar": { capital: "Doha", neighbors: ["Saudi Arabia","United Arab Emirates","Bahrain"] },
+    "Oman": { capital: "Muscat", neighbors: ["United Arab Emirates","Saudi Arabia","Yemen"] },
+    "Yemen": { capital: "Sana'a", neighbors: ["Saudi Arabia","Oman"] },
+    "Kuwait": { capital: "Kuwait City", neighbors: ["Iraq","Saudi Arabia"] },
+    "Bahrain": { capital: "Manama", neighbors: ["Saudi Arabia","Qatar"] }
+  };
+
+  // Helper maps
+  const capitalOf = Object.fromEntries(Object.entries(countryData).map(([c,v])=>[c,v.capital]));
+
+  // Eligible countries are those with at least three neighbors that also exist in our dataset
+  const eligible = Object.keys(countryData).filter(c => {
+    const valids = countryData[c].neighbors.filter(n => countryData[n]);
+    return valids.length >= 3;
+  });
+
+  const state = { asked:new Set(), score:0, qn:0, total:0, current:null, wrongAnswers:[] };
+  const els = {
+    setup:document.getElementById('setup'), setupOptions:document.getElementById('setupOptions'),
+    quiz:document.getElementById('quiz'), result:document.getElementById('result'),
+    question:document.getElementById('question'), options:document.getElementById('options'),
+    feedback:document.getElementById('feedback'), next:document.getElementById('nextBtn'),
+    counter:document.getElementById('counter'), bar:document.getElementById('barFill'),
+    final:document.getElementById('finalScore'), remark:document.getElementById('remark'),
+    wrongList:document.getElementById('wrongList'), restart:document.getElementById('restartBtn')
+  };
+
+  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+  function pickCountry(){
+    let remaining = eligible.filter(c => !state.asked.has(c));
+    if(remaining.length === 0){ // if we ever run out, allow repeats to meet the requested total
+      state.asked.clear();
+      remaining = eligible;
+    }
+    const pick = remaining[Math.floor(Math.random()*remaining.length)];
+    state.asked.add(pick);
+    return pick;
+  }
+
+  function makeQuestion(){
+    state.qn += 1;
+    if(state.qn > state.total) return endQuiz();
+
+    const country = pickCountry();
+    state.current = country;
+
+    const correct = capitalOf[country];
+    const neigh = countryData[country].neighbors.filter(n => capitalOf[n]);
+    // ensure we have three valid neighbor capitals
+    if(neigh.length < 3){ return makeQuestion(); }
+    shuffle(neigh);
+
+    const options = [correct, ...neigh.slice(0,3).map(n => capitalOf[n])];
+    shuffle(options);
+
+    // render
+    els.question.textContent = `What is the capital of ${country}?`;
+    els.options.innerHTML = '';
+    els.feedback.textContent = '';
+    els.next.disabled = true;
+    els.counter.textContent = `Question ${state.qn} of ${state.total}`;
+    els.bar.style.width = `${((state.qn - 1) / state.total) * 100}%`;
+
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt === correct);
+      els.options.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, isCorrect){
+    document.querySelectorAll('.option').forEach(b => b.classList.add('disabled'));
+    if(isCorrect){
+      btn.classList.add('correct');
+      state.score += 1;
+      els.feedback.textContent = 'Correct';
+    } else {
+      btn.classList.add('wrong');
+      els.feedback.textContent = `Correct: ${capitalOf[state.current]}`;
+      state.wrongAnswers.push(`${state.current}: ${capitalOf[state.current]}`);
+      document.querySelectorAll('.option').forEach(b => {
+        if(b.textContent === capitalOf[state.current]) b.classList.add('correct');
+      });
+    }
+    els.next.disabled = false;
+  }
+
+  function endQuiz(){
+    els.quiz.style.display = 'none';
+    els.result.style.display = 'block';
+    els.final.textContent = `${state.score} of ${state.total}`;
+    els.remark.textContent = state.score === state.total
+      ? 'Perfect score'
+      : state.score >= Math.ceil(state.total*0.8)
+        ? 'Excellent'
+        : state.score >= Math.ceil(state.total*0.5)
+          ? 'Good job'
+          : 'Keep practicing';
+    els.bar.style.width = '100%';
+    els.wrongList.innerHTML = state.wrongAnswers.length
+      ? '<h3>Capitals you missed:</h3><ul>' + state.wrongAnswers.map(w => `<li>${w}</li>`).join('') + '</ul>'
+      : '<h3>You got all correct!</h3>';
+  }
+
+  els.next.onclick = () => {
+    if(state.qn < state.total){ makeQuestion(); } else { endQuiz(); }
+  };
+
+  els.restart.onclick = () => {
+    state.asked.clear(); state.score = 0; state.qn = 0; state.wrongAnswers = [];
+    els.result.style.display = 'none'; els.setup.style.display = 'block';
+    els.counter.textContent = 'Setup'; els.bar.style.width = '0%';
+  };
+
+  // Setup choices
+  [5,10,25].forEach(num => {
+    const b = document.createElement('button');
+    b.className = 'option';
+    b.textContent = num;
+    b.onclick = () => {
+      state.total = num;
+      els.setup.style.display = 'none';
+      els.quiz.style.display = 'block';
+      state.asked.clear(); state.score = 0; state.qn = 0; state.wrongAnswers = [];
+      makeQuestion();
+    };
+    els.setupOptions.appendChild(b);
+  });
+</script>
+</body>
+</html>
