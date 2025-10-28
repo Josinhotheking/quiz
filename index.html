@@ -1,345 +1,417 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>World Capitals Neighbor Quiz</title>
-  <style>
-    :root { --blue:#1f6feb; --green:#22a06b; --blue-700:#1156c3; --green-700:#1a7f54; --text:#e6f0ff; --muted:#b8d3ff }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,sans-serif;color:var(--text);background:linear-gradient(135deg,var(--blue) 0%,var(--green) 100%) fixed;display:grid;place-items:center;padding:24px}
-    .app{width:100%;max-width:760px;background:rgba(6,17,31,.85);border:1px solid rgba(255,255,255,.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
-    header{padding:20px 24px;background:linear-gradient(90deg,rgba(31,111,235,.2),rgba(34,160,107,.2));border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .title{font-size:20px;font-weight:700}
-    .progress{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:600}
-    .bar{position:relative;height:8px;width:160px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
-    .bar>span{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,var(--blue),var(--green))}
-    main{padding:24px}
-    .card{background:rgba(10,29,50,.8);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px}
-    .question{font-size:22px;font-weight:700;margin:0 0 16px}
-    .subtitle{color:var(--muted);margin-bottom:18px}
-    .options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .option{padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-weight:650;text-align:left;user-select:none}
-    .option.correct{background:rgba(34,160,107,.18);border-color:var(--green)}
-    .option.wrong{background:rgba(31,111,235,.18);border-color:var(--blue)}
-    .option.disabled{pointer-events:none;opacity:.8}
-    .footer{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted)}
-    .btn{padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(90deg,var(--blue-700),var(--green-700));color:#fff;font-weight:700;cursor:pointer}
-    .result{text-align:center;padding:36px 24px 48px}
-    .score{font-size:56px;font-weight:800;background:linear-gradient(90deg,var(--blue),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
-    .wrong-list{margin-top:20px;text-align:left}
-    @media (max-width:560px){.options{grid-template-columns:1fr}}
-  </style>
-</head>
-<body>
-<div class="app" id="app">
-  <header>
-    <div class="title">Capitals of Neighboring Countries Quiz</div>
-    <div class="progress">
-      <div id="counter">Setup</div>
-      <div class="bar"><span id="barFill"></span></div>
-    </div>
-  </header>
-  <main>
-    <section class="card" id="setup">
-      <p class="question">How many questions do you want in the quiz?</p>
-      <div class="options" id="setupOptions"></div>
-    </section>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Outlive Zone 2 Challenge</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html, body, #root { height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
 
-    <section class="card" id="quiz" style="display:none">
-      <p class="question" id="question"></p>
-      <p class="subtitle">Pick the correct capital, three other options come from neighboring countries.</p>
-      <div class="options" id="options"></div>
-      <div class="footer">
-        <div id="feedback"></div>
-        <button id="nextBtn" class="btn" disabled>Next</button>
-      </div>
-    </section>
+    <script type="text/babel">
+      // ================== CONFIG ==================
+      const CONFIG = {
+        participants: [
+          { name: "Jos", pin: "1111" },
+          { name: "Tom", pin: "2222" },
+          { name: "Gerben Jan", pin: "3333" },
+        ],
+        goals: { Easy: 1750, Medium: 2100, Hard: 2500 },
+        GAS_WEB_APP_URL: "",
+      };
 
-    <section class="card result" id="result" style="display:none">
-      <h2>Result</h2>
-      <div class="score" id="finalScore"></div>
-      <p id="remark"></p>
-      <div class="wrong-list" id="wrongList"></div>
-      <button id="restartBtn" class="btn" style="margin-top:16px">Play again</button>
-    </section>
-  </main>
-</div>
-<script>
-  // Expanded dataset, includes many countries so 25 unique questions are possible
-  const countryData = {
-    // Europe
-    "France": { capital: "Paris", neighbors: ["Belgium","Luxembourg","Germany","Switzerland","Italy","Spain","Andorra","Monaco"] },
-    "Germany": { capital: "Berlin", neighbors: ["Denmark","Poland","Czechia","Austria","Switzerland","France","Luxembourg","Belgium","Netherlands"] },
-    "Poland": { capital: "Warsaw", neighbors: ["Germany","Czechia","Slovakia","Ukraine","Belarus","Lithuania","Russia"] },
-    "Czechia": { capital: "Prague", neighbors: ["Germany","Poland","Slovakia","Austria"] },
-    "Austria": { capital: "Vienna", neighbors: ["Germany","Czechia","Slovakia","Hungary","Slovenia","Italy","Switzerland","Liechtenstein"] },
-    "Italy": { capital: "Rome", neighbors: ["France","Switzerland","Austria","Slovenia","San Marino","Vatican City"] },
-    "Spain": { capital: "Madrid", neighbors: ["Portugal","France","Andorra","Gibraltar"] },
-    "Portugal": { capital: "Lisbon", neighbors: ["Spain"] },
-    "Switzerland": { capital: "Bern", neighbors: ["France","Germany","Austria","Liechtenstein","Italy"] },
-    "Belgium": { capital: "Brussels", neighbors: ["France","Luxembourg","Germany","Netherlands"] },
-    "Netherlands": { capital: "Amsterdam", neighbors: ["Belgium","Germany"] },
-    "Luxembourg": { capital: "Luxembourg", neighbors: ["Belgium","France","Germany"] },
-    "Denmark": { capital: "Copenhagen", neighbors: ["Germany"] },
-    "Norway": { capital: "Oslo", neighbors: ["Sweden","Finland","Russia"] },
-    "Sweden": { capital: "Stockholm", neighbors: ["Norway","Finland"] },
-    "Finland": { capital: "Helsinki", neighbors: ["Sweden","Norway","Russia"] },
-    "Ukraine": { capital: "Kyiv", neighbors: ["Poland","Slovakia","Hungary","Romania","Moldova","Belarus","Russia"] },
-    "Belarus": { capital: "Minsk", neighbors: ["Latvia","Lithuania","Poland","Russia","Ukraine"] },
-    "Lithuania": { capital: "Vilnius", neighbors: ["Latvia","Belarus","Poland","Russia"] },
-    "Latvia": { capital: "Riga", neighbors: ["Estonia","Russia","Belarus","Lithuania"] },
-    "Estonia": { capital: "Tallinn", neighbors: ["Latvia","Russia"] },
-    "Slovakia": { capital: "Bratislava", neighbors: ["Czechia","Poland","Ukraine","Hungary","Austria"] },
-    "Hungary": { capital: "Budapest", neighbors: ["Slovakia","Ukraine","Romania","Serbia","Croatia","Slovenia","Austria"] },
-    "Romania": { capital: "Bucharest", neighbors: ["Ukraine","Moldova","Bulgaria","Serbia","Hungary"] },
-    "Bulgaria": { capital: "Sofia", neighbors: ["Romania","Serbia","North Macedonia","Greece","Turkey"] },
-    "Serbia": { capital: "Belgrade", neighbors: ["Hungary","Romania","Bulgaria","North Macedonia","Croatia","Bosnia and Herzegovina","Montenegro","Kosovo"] },
-    "Croatia": { capital: "Zagreb", neighbors: ["Slovenia","Hungary","Serbia","Bosnia and Herzegovina","Montenegro"] },
-    "Slovenia": { capital: "Ljubljana", neighbors: ["Italy","Austria","Hungary","Croatia"] },
-    "Bosnia and Herzegovina": { capital: "Sarajevo", neighbors: ["Croatia","Serbia","Montenegro"] },
-    "Montenegro": { capital: "Podgorica", neighbors: ["Croatia","Bosnia and Herzegovina","Serbia","Kosovo","Albania"] },
-    "Albania": { capital: "Tirana", neighbors: ["Montenegro","Kosovo","North Macedonia","Greece"] },
-    "North Macedonia": { capital: "Skopje", neighbors: ["Kosovo","Serbia","Bulgaria","Greece","Albania"] },
-    "Greece": { capital: "Athens", neighbors: ["Albania","North Macedonia","Bulgaria","Turkey"] },
-    "Turkey": { capital: "Ankara", neighbors: ["Greece","Bulgaria","Georgia","Armenia","Azerbaijan","Iran","Iraq","Syria"] },
-    "Moldova": { capital: "Chișinău", neighbors: ["Romania","Ukraine"] },
-    "Kosovo": { capital: "Pristina", neighbors: ["Serbia","Montenegro","Albania","North Macedonia"] },
-    "Georgia": { capital: "Tbilisi", neighbors: ["Russia","Azerbaijan","Armenia","Turkey"] },
-    "Armenia": { capital: "Yerevan", neighbors: ["Georgia","Azerbaijan","Turkey","Iran"] },
-    "Azerbaijan": { capital: "Baku", neighbors: ["Russia","Georgia","Armenia","Iran","Turkey"] },
+      // ================== HELPERS ==================
+      const YMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const fromYMD = s => new Date(`${s}T00:00:00`);
+      const isFuture = d => fromYMD(d) > new Date();
 
-    // Africa
-    "Morocco": { capital: "Rabat", neighbors: ["Algeria","Spain","Western Sahara"] },
-    "Algeria": { capital: "Algiers", neighbors: ["Morocco","Western Sahara","Mauritania","Mali","Niger","Libya","Tunisia"] },
-    "Tunisia": { capital: "Tunis", neighbors: ["Algeria","Libya"] },
-    "Libya": { capital: "Tripoli", neighbors: ["Tunisia","Algeria","Niger","Chad","Sudan","Egypt"] },
-    "Egypt": { capital: "Cairo", neighbors: ["Libya","Sudan","Israel","Jordan"] },
-    "Sudan": { capital: "Khartoum", neighbors: ["Egypt","Libya","Chad","Central African Republic","South Sudan","Ethiopia","Eritrea"] },
-    "South Sudan": { capital: "Juba", neighbors: ["Sudan","Ethiopia","Kenya","Uganda","Democratic Republic of the Congo","Central African Republic"] },
-    "Chad": { capital: "N'Djamena", neighbors: ["Libya","Sudan","Central African Republic","Cameroon","Nigeria","Niger"] },
-    "Niger": { capital: "Niamey", neighbors: ["Algeria","Libya","Chad","Nigeria","Benin","Burkina Faso","Mali"] },
-    "Mali": { capital: "Bamako", neighbors: ["Mauritania","Algeria","Niger","Burkina Faso","Côte d'Ivoire","Guinea","Senegal"] },
-    "Burkina Faso": { capital: "Ouagadougou", neighbors: ["Mali","Niger","Benin","Togo","Ghana","Côte d'Ivoire"] },
-    "Ghana": { capital: "Accra", neighbors: ["Côte d'Ivoire","Burkina Faso","Togo"] },
-    "Côte d'Ivoire": { capital: "Yamoussoukro", neighbors: ["Liberia","Guinea","Mali","Burkina Faso","Ghana"] },
-    "Togo": { capital: "Lomé", neighbors: ["Ghana","Burkina Faso","Benin"] },
-    "Benin": { capital: "Porto-Novo", neighbors: ["Togo","Burkina Faso","Niger","Nigeria"] },
-    "Nigeria": { capital: "Abuja", neighbors: ["Benin","Niger","Chad","Cameroon"] },
-    "Cameroon": { capital: "Yaoundé", neighbors: ["Nigeria","Chad","Central African Republic","Republic of the Congo","Gabon","Equatorial Guinea"] },
-    "Central African Republic": { capital: "Bangui", neighbors: ["Chad","Sudan","South Sudan","Democratic Republic of the Congo","Republic of the Congo","Cameroon"] },
-    "Republic of the Congo": { capital: "Brazzaville", neighbors: ["Gabon","Cameroon","Central African Republic","Democratic Republic of the Congo","Angola"] },
-    "Democratic Republic of the Congo": { capital: "Kinshasa", neighbors: ["Republic of the Congo","Central African Republic","South Sudan","Uganda","Rwanda","Burundi","Tanzania","Zambia","Angola"] },
-    "Uganda": { capital: "Kampala", neighbors: ["South Sudan","Kenya","Tanzania","Rwanda","Democratic Republic of the Congo"] },
-    "Kenya": { capital: "Nairobi", neighbors: ["Ethiopia","South Sudan","Uganda","Tanzania","Somalia"] },
-    "Tanzania": { capital: "Dodoma", neighbors: ["Kenya","Uganda","Rwanda","Burundi","Democratic Republic of the Congo","Zambia","Malawi","Mozambique"] },
-    "Rwanda": { capital: "Kigali", neighbors: ["Uganda","Tanzania","Burundi","Democratic Republic of the Congo"] },
-    "Burundi": { capital: "Gitega", neighbors: ["Rwanda","Tanzania","Democratic Republic of the Congo"] },
-    "Zambia": { capital: "Lusaka", neighbors: ["Democratic Republic of the Congo","Tanzania","Malawi","Mozambique","Zimbabwe","Botswana","Namibia","Angola"] },
-    "Zimbabwe": { capital: "Harare", neighbors: ["Zambia","Mozambique","South Africa","Botswana"] },
-    "Mozambique": { capital: "Maputo", neighbors: ["Tanzania","Malawi","Zambia","Zimbabwe","South Africa","Eswatini"] },
-    "South Africa": { capital: "Pretoria", neighbors: ["Namibia","Botswana","Zimbabwe","Mozambique","Eswatini","Lesotho"] },
-    "Namibia": { capital: "Windhoek", neighbors: ["Angola","Zambia","Botswana","South Africa"] },
-    "Botswana": { capital: "Gaborone", neighbors: ["Namibia","Zambia","Zimbabwe","South Africa"] },
-    "Ethiopia": { capital: "Addis Ababa", neighbors: ["Eritrea","Djibouti","Somalia","Kenya","South Sudan","Sudan"] },
-    "Somalia": { capital: "Mogadishu", neighbors: ["Djibouti","Ethiopia","Kenya"] },
-    "Eritrea": { capital: "Asmara", neighbors: ["Sudan","Ethiopia","Djibouti"] },
-    "Senegal": { capital: "Dakar", neighbors: ["Mauritania","Mali","Guinea","Guinea-Bissau","The Gambia"] },
-    "Guinea": { capital: "Conakry", neighbors: ["Guinea-Bissau","Senegal","Mali","Sierra Leone","Liberia","Côte d'Ivoire"] },
-    "Mauritania": { capital: "Nouakchott", neighbors: ["Western Sahara","Algeria","Mali","Senegal"] },
-    "Angola": { capital: "Luanda", neighbors: ["Democratic Republic of the Congo","Republic of the Congo","Namibia","Zambia"] },
-    "Gabon": { capital: "Libreville", neighbors: ["Equatorial Guinea","Cameroon","Republic of the Congo"] },
-    "Equatorial Guinea": { capital: "Malabo", neighbors: ["Cameroon","Gabon"] },
-    "Malawi": { capital: "Lilongwe", neighbors: ["Tanzania","Mozambique","Zambia"] },
+      function currentChallengeRange() {
+        const year = new Date().getFullYear();
+        const start = new Date(`${year}-11-01T00:00:00`);
+        const end = new Date(`${year}-12-31T00:00:00`);
+        return { start, end };
+      }
 
-    // Americas
-    "United States": { capital: "Washington, D.C.", neighbors: ["Canada","Mexico"] },
-    "Canada": { capital: "Ottawa", neighbors: ["United States"] },
-    "Mexico": { capital: "Mexico City", neighbors: ["United States","Guatemala","Belize"] },
-    "Guatemala": { capital: "Guatemala City", neighbors: ["Mexico","Belize","Honduras","El Salvador"] },
-    "Belize": { capital: "Belmopan", neighbors: ["Mexico","Guatemala"] },
-    "Honduras": { capital: "Tegucigalpa", neighbors: ["Guatemala","El Salvador","Nicaragua"] },
-    "El Salvador": { capital: "San Salvador", neighbors: ["Guatemala","Honduras"] },
-    "Nicaragua": { capital: "Managua", neighbors: ["Honduras","Costa Rica"] },
-    "Costa Rica": { capital: "San José", neighbors: ["Nicaragua","Panama"] },
-    "Panama": { capital: "Panama City", neighbors: ["Costa Rica","Colombia"] },
-    "Colombia": { capital: "Bogotá", neighbors: ["Panama","Venezuela","Brazil","Peru","Ecuador"] },
-    "Venezuela": { capital: "Caracas", neighbors: ["Colombia","Brazil","Guyana"] },
-    "Ecuador": { capital: "Quito", neighbors: ["Colombia","Peru"] },
-    "Peru": { capital: "Lima", neighbors: ["Ecuador","Colombia","Brazil","Bolivia","Chile"] },
-    "Bolivia": { capital: "La Paz", neighbors: ["Peru","Brazil","Paraguay","Argentina","Chile"] },
-    "Brazil": { capital: "Brasília", neighbors: ["Guyana","Venezuela","Colombia","Peru","Bolivia","Paraguay","Argentina","Uruguay","Suriname"] },
-    "Paraguay": { capital: "Asunción", neighbors: ["Bolivia","Brazil","Argentina"] },
-    "Uruguay": { capital: "Montevideo", neighbors: ["Brazil","Argentina"] },
-    "Argentina": { capital: "Buenos Aires", neighbors: ["Chile","Bolivia","Paraguay","Brazil","Uruguay"] },
-    "Chile": { capital: "Santiago", neighbors: ["Peru","Bolivia","Argentina"] },
-    "Guyana": { capital: "Georgetown", neighbors: ["Venezuela","Brazil","Suriname"] },
-    "Suriname": { capital: "Paramaribo", neighbors: ["Guyana","Brazil"] },
+      function enumerateDays(start, end) {
+        const arr = [];
+        const d = new Date(start);
+        while (d <= end) {
+          arr.push(YMD(d));
+          d.setDate(d.getDate() + 1);
+        }
+        return arr;
+      }
 
-    // Asia
-    "Russia": { capital: "Moscow", neighbors: ["Norway","Finland","Estonia","Latvia","Lithuania","Poland","Belarus","Ukraine","Georgia","Azerbaijan","Kazakhstan","China","Mongolia","North Korea"] },
-    "China": { capital: "Beijing", neighbors: ["Mongolia","Russia","North Korea","Vietnam","Laos","Myanmar","India","Bhutan","Nepal","Pakistan","Afghanistan","Tajikistan","Kyrgyzstan","Kazakhstan"] },
-    "India": { capital: "New Delhi", neighbors: ["Pakistan","China","Nepal","Bhutan","Bangladesh","Myanmar"] },
-    "Pakistan": { capital: "Islamabad", neighbors: ["Afghanistan","Iran","India","China"] },
-    "Afghanistan": { capital: "Kabul", neighbors: ["Turkmenistan","Uzbekistan","Tajikistan","China","Pakistan","Iran"] },
-    "Kazakhstan": { capital: "Astana", neighbors: ["Russia","China","Kyrgyzstan","Uzbekistan","Turkmenistan"] },
-    "Uzbekistan": { capital: "Tashkent", neighbors: ["Kazakhstan","Kyrgyzstan","Tajikistan","Afghanistan","Turkmenistan"] },
-    "Kyrgyzstan": { capital: "Bishkek", neighbors: ["Kazakhstan","Uzbekistan","Tajikistan","China"] },
-    "Tajikistan": { capital: "Dushanbe", neighbors: ["Uzbekistan","Kyrgyzstan","China","Afghanistan"] },
-    "Turkmenistan": { capital: "Ashgabat", neighbors: ["Kazakhstan","Uzbekistan","Afghanistan","Iran"] },
-    "Iran": { capital: "Tehran", neighbors: ["Iraq","Turkey","Armenia","Azerbaijan","Turkmenistan","Afghanistan","Pakistan"] },
-    "Iraq": { capital: "Baghdad", neighbors: ["Turkey","Iran","Kuwait","Saudi Arabia","Jordan","Syria"] },
-    "Syria": { capital: "Damascus", neighbors: ["Turkey","Iraq","Jordan","Israel","Lebanon"] },
-    "Jordan": { capital: "Amman", neighbors: ["Syria","Iraq","Saudi Arabia","Israel"] },
-    "Saudi Arabia": { capital: "Riyadh", neighbors: ["Jordan","Iraq","Kuwait","Qatar","United Arab Emirates","Oman","Yemen","Bahrain"] },
-    "Israel": { capital: "Jerusalem", neighbors: ["Lebanon","Syria","Jordan","Egypt"] },
-    "Lebanon": { capital: "Beirut", neighbors: ["Syria","Israel"] },
-    "Vietnam": { capital: "Hanoi", neighbors: ["China","Laos","Cambodia"] },
-    "Laos": { capital: "Vientiane", neighbors: ["China","Vietnam","Cambodia","Thailand","Myanmar"] },
-    "Thailand": { capital: "Bangkok", neighbors: ["Myanmar","Laos","Cambodia","Malaysia"] },
-    "Myanmar": { capital: "Naypyidaw", neighbors: ["India","Bangladesh","China","Laos","Thailand"] },
-    "Cambodia": { capital: "Phnom Penh", neighbors: ["Thailand","Laos","Vietnam"] },
-    "Malaysia": { capital: "Kuala Lumpur", neighbors: ["Thailand","Indonesia","Brunei"] },
-    "Indonesia": { capital: "Jakarta", neighbors: ["Malaysia","Papua New Guinea","Timor-Leste"] },
-    "Nepal": { capital: "Kathmandu", neighbors: ["India","China"] },
-    "Bhutan": { capital: "Thimphu", neighbors: ["India","China"] },
-    "Mongolia": { capital: "Ulaanbaatar", neighbors: ["Russia","China"] },
-    "Bangladesh": { capital: "Dhaka", neighbors: ["India","Myanmar"] },
-    "North Korea": { capital: "Pyongyang", neighbors: ["China","Russia","South Korea"] },
-    "South Korea": { capital: "Seoul", neighbors: ["North Korea"] },
-    "United Arab Emirates": { capital: "Abu Dhabi", neighbors: ["Saudi Arabia","Oman","Qatar"] },
-    "Qatar": { capital: "Doha", neighbors: ["Saudi Arabia","United Arab Emirates","Bahrain"] },
-    "Oman": { capital: "Muscat", neighbors: ["United Arab Emirates","Saudi Arabia","Yemen"] },
-    "Yemen": { capital: "Sana'a", neighbors: ["Saudi Arabia","Oman"] },
-    "Kuwait": { capital: "Kuwait City", neighbors: ["Iraq","Saudi Arabia"] },
-    "Bahrain": { capital: "Manama", neighbors: ["Saudi Arabia","Qatar"] }
-  };
+      function radialStyle() {
+        return {
+          background:
+            "radial-gradient(1200px circle at 50% 20%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 25%, rgba(210,236,255,0.9) 38%, rgba(232,249,225,0.85) 52%, rgba(255,238,246,0.85) 66%, rgba(255,255,255,1) 100%)",
+          minHeight: "100vh",
+        };
+      }
 
-  // Helper maps
-  const capitalOf = Object.fromEntries(Object.entries(countryData).map(([c,v])=>[c,v.capital]));
+      const classNames = (...a) => a.filter(Boolean).join(" ");
+      const QUOTES = [
+        "When you think you're done, you're only 40% done.",
+        "Stay disciplined when motivation fades.",
+        "You don't find toughness, you build it.",
+        "Every minute counts. Stay hard.",
+        "It’s you vs you, no one else.",
+        "Be uncommon amongst uncommon people.",
+        "Suffering is the true test of life.",
+      ];
+      const pickQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
-  // Eligible countries are those with at least three neighbors that also exist in our dataset
-  const eligible = Object.keys(countryData).filter(c => {
-    const valids = countryData[c].neighbors.filter(n => countryData[n]);
-    return valids.length >= 3;
-  });
+      const LS_KEY = "outlive_zone2_data_v1";
+      const loadLocal = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
+      const saveLocal = db => localStorage.setItem(LS_KEY, JSON.stringify(db));
 
-  const state = { asked:new Set(), score:0, qn:0, total:0, current:null, wrongAnswers:[] };
-  const els = {
-    setup:document.getElementById('setup'), setupOptions:document.getElementById('setupOptions'),
-    quiz:document.getElementById('quiz'), result:document.getElementById('result'),
-    question:document.getElementById('question'), options:document.getElementById('options'),
-    feedback:document.getElementById('feedback'), next:document.getElementById('nextBtn'),
-    counter:document.getElementById('counter'), bar:document.getElementById('barFill'),
-    final:document.getElementById('finalScore'), remark:document.getElementById('remark'),
-    wrongList:document.getElementById('wrongList'), restart:document.getElementById('restartBtn')
-  };
+      // ================== APP ==================
+      function App() {
+        const { start, end } = React.useMemo(() => currentChallengeRange(), []);
+        const days = React.useMemo(() => enumerateDays(start, end), [start, end]);
+        const [db, setDb] = React.useState(loadLocal());
+        const [user, setUser] = React.useState(null);
+        const [quote, setQuote] = React.useState("");
+        const [pending, setPending] = React.useState(null);
 
-  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+        React.useEffect(() => saveLocal(db), [db]);
 
-  function pickCountry(){
-    let remaining = eligible.filter(c => !state.asked.has(c));
-    if(remaining.length === 0){ // if we ever run out, allow repeats to meet the requested total
-      state.asked.clear();
-      remaining = eligible;
-    }
-    const pick = remaining[Math.floor(Math.random()*remaining.length)];
-    state.asked.add(pick);
-    return pick;
-  }
+        function ensureUser(name) {
+          setDb(cur => {
+            if (!cur[name]) cur[name] = { level: null, entries: {} };
+            return { ...cur };
+          });
+        }
 
-  function makeQuestion(){
-    state.qn += 1;
-    if(state.qn > state.total) return endQuiz();
+        function setLevel(name, level) {
+          setDb(cur => {
+            const next = { ...cur };
+            next[name] = next[name] || { level: null, entries: {} };
+            if (!next[name].level) next[name].level = level;
+            return next;
+          });
+        }
 
-    const country = pickCountry();
-    state.current = country;
+        function setMinutes(name, ymd, mins) {
+          setDb(cur => {
+            const next = { ...cur };
+            next[name] = next[name] || { level: null, entries: {} };
+            next[name].entries = { ...next[name].entries, [ymd]: mins };
+            return next;
+          });
+        }
 
-    const correct = capitalOf[country];
-    const neigh = countryData[country].neighbors.filter(n => capitalOf[n]);
-    // ensure we have three valid neighbor capitals
-    if(neigh.length < 3){ return makeQuestion(); }
-    shuffle(neigh);
+        function totalFor(n) {
+          const rec = db[n];
+          if (!rec) return 0;
+          return Object.values(rec.entries || {}).reduce((a, b) => a + (parseInt(b || 0, 10) || 0), 0);
+        }
 
-    const options = [correct, ...neigh.slice(0,3).map(n => capitalOf[n])];
-    shuffle(options);
+        function goalFor(n) {
+          const rec = db[n];
+          if (!rec || !rec.level) return 0;
+          return CONFIG.goals[rec.level];
+        }
 
-    // render
-    els.question.textContent = `What is the capital of ${country}?`;
-    els.options.innerHTML = '';
-    els.feedback.textContent = '';
-    els.next.disabled = true;
-    els.counter.textContent = `Question ${state.qn} of ${state.total}`;
-    els.bar.style.width = `${((state.qn - 1) / state.total) * 100}%`;
+        function planUntilDay(goal, total, ymd, all) {
+          const i = all.indexOf(ymd) + 1;
+          return Math.round((goal / total) * i);
+        }
 
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'option';
-      btn.textContent = opt;
-      btn.onclick = () => handleAnswer(btn, opt === correct);
-      els.options.appendChild(btn);
-    });
-  }
+        function planUntilToday(n) {
+          const rec = db[n];
+          if (!rec || !rec.level) return 0;
+          const goal = CONFIG.goals[rec.level];
+          const today = YMD(new Date());
+          let idx = days.indexOf(today) + 1;
+          if (idx < 0) idx = 0;
+          if (idx > days.length) idx = days.length;
+          return Math.round((goal / days.length) * idx);
+        }
 
-  function handleAnswer(btn, isCorrect){
-    document.querySelectorAll('.option').forEach(b => b.classList.add('disabled'));
-    if(isCorrect){
-      btn.classList.add('correct');
-      state.score += 1;
-      els.feedback.textContent = 'Correct';
-    } else {
-      btn.classList.add('wrong');
-      els.feedback.textContent = `Correct: ${capitalOf[state.current]}`;
-      state.wrongAnswers.push(`${state.current}: ${capitalOf[state.current]}`);
-      document.querySelectorAll('.option').forEach(b => {
-        if(b.textContent === capitalOf[state.current]) b.classList.add('correct');
-      });
-    }
-    els.next.disabled = false;
-  }
+        const leaderboard = React.useMemo(
+          () =>
+            CONFIG.participants
+              .map(p => {
+                const g = goalFor(p.name),
+                  s = totalFor(p.name);
+                const pct = g ? Math.min(100, Math.round((s / g) * 100)) : 0;
+                const onPlan = g ? s - planUntilToday(p.name) : 0;
+                return { name: p.name, goal: g, sum: s, pct, onPlan };
+              })
+              .sort((a, b) => b.pct - a.pct || b.sum - a.sum),
+          [db]
+        );
 
-  function endQuiz(){
-    els.quiz.style.display = 'none';
-    els.result.style.display = 'block';
-    els.final.textContent = `${state.score} of ${state.total}`;
-    els.remark.textContent = state.score === state.total
-      ? 'Perfect score'
-      : state.score >= Math.ceil(state.total*0.8)
-        ? 'Excellent'
-        : state.score >= Math.ceil(state.total*0.5)
-          ? 'Good job'
-          : 'Keep practicing';
-    els.bar.style.width = '100%';
-    els.wrongList.innerHTML = state.wrongAnswers.length
-      ? '<h3>Capitals you missed:</h3><ul>' + state.wrongAnswers.map(w => `<li>${w}</li>`).join('') + '</ul>'
-      : '<h3>You got all correct!</h3>';
-  }
+        return (
+          <div style={radialStyle()} className="text-slate-900">
+            <div className="max-w-6xl mx-auto px-4 py-8">
+              <Header />
+              {!user ? (
+                <LoginScreen onLogin={setUser} ensureUser={ensureUser} setLevel={setLevel} />
+              ) : (
+                <MainScreen
+                  user={user}
+                  setUser={setUser}
+                  days={days}
+                  db={db}
+                  setMinutes={setMinutes}
+                  totalFor={totalFor}
+                  goalFor={goalFor}
+                  planUntilDay={planUntilDay}
+                  planUntilToday={planUntilToday}
+                  leaderboard={leaderboard}
+                  showConfirm={(d, m) => setPending({ date: d, minutes: m })}
+                />
+              )}
+              {pending && (
+                <ConfirmModal
+                  date={pending.date}
+                  minutes={pending.minutes}
+                  onConfirm={() => {
+                    setMinutes(user.name, pending.date, pending.minutes);
+                    setPending(null);
+                    setQuote(pickQuote());
+                  }}
+                  onCancel={() => setPending(null)}
+                />
+              )}
+              {quote && (
+                <div className="fixed inset-x-0 bottom-0 p-4">
+                  <div className="max-w-3xl mx-auto rounded-2xl bg-white/90 backdrop-blur shadow-lg p-4 text-center border border-slate-200">
+                    <p className="text-lg font-medium italic">{quote}</p>
+                    <button
+                      className="mt-3 px-4 py-2 rounded-xl bg-slate-900 text-white"
+                      onClick={() => setQuote("")}
+                    >
+                      Sluiten
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
 
-  els.next.onclick = () => {
-    if(state.qn < state.total){ makeQuestion(); } else { endQuiz(); }
-  };
+      // ================== COMPONENTS ==================
+      const Header = () => (
+        <div className="mb-8 text-center">
+          <div className="text-xs tracking-widest text-slate-600">Zone 2 Challenge</div>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mt-1">Outlive Zone 2</h1>
+          <p className="text-slate-600 mt-2">November – December</p>
+        </div>
+      );
 
-  els.restart.onclick = () => {
-    state.asked.clear(); state.score = 0; state.qn = 0; state.wrongAnswers = [];
-    els.result.style.display = 'none'; els.setup.style.display = 'block';
-    els.counter.textContent = 'Setup'; els.bar.style.width = '0%';
-  };
+      function LoginScreen({ onLogin, ensureUser, setLevel }) {
+        const [name, setName] = React.useState(CONFIG.participants[0].name);
+        const [pin, setPin] = React.useState("");
+        const [level, setLevelLocal] = React.useState("Easy");
+        const [error, setError] = React.useState("");
+        function handleLogin() {
+          const p = CONFIG.participants.find(x => x.name === name);
+          if (!p || p.pin !== pin) {
+            setError("Verkeerde pincode");
+            return;
+          }
+          ensureUser(name);
+          setLevel(name, level);
+          onLogin({ name });
+        }
+        return (
+          <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+              <h2 className="text-2xl font-semibold">Inloggen</h2>
+              <div className="mt-4">
+                <label className="block text-sm">Deelnemer</label>
+                <select
+                  className="mt-1 w-full border rounded-xl px-3 py-2"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                >
+                  {CONFIG.participants.map(p => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm">Pincode</label>
+                <input
+                  className="mt-1 w-full border rounded-xl px-3 py-2"
+                  type="password"
+                  inputMode="numeric"
+                  value={pin}
+                  onChange={e => setPin(e.target.value)}
+                  placeholder="Vier cijfers"
+                />
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm">Niveau</label>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {["Easy", "Medium", "Hard"].map(opt => (
+                    <button
+                      key={opt}
+                      className={classNames(
+                        "px-3 py-2 rounded-xl border",
+                        level === opt ? "bg-slate-900 text-white" : "bg-white"
+                      )}
+                      onClick={() => setLevelLocal(opt)}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Let op, keuze is eenmalig en wordt vastgezet bij eerste inlog.
+                </p>
+              </div>
+              {error && <p className="mt-3 text-red-600">{error}</p>}
+              <button
+                className="mt-6 w-full bg-slate-900 text-white rounded-xl py-3"
+                onClick={handleLogin}
+              >
+                Bevestig en start
+              </button>
+            </div>
 
-  // Setup choices
-  [5,10,25].forEach(num => {
-    const b = document.createElement('button');
-    b.className = 'option';
-    b.textContent = num;
-    b.onclick = () => {
-      state.total = num;
-      els.setup.style.display = 'none';
-      els.quiz.style.display = 'block';
-      state.asked.clear(); state.score = 0; state.qn = 0; state.wrongAnswers = [];
-      makeQuestion();
-    };
-    els.setupOptions.appendChild(b);
-  });
-</script>
-</body>
-</html>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+              <h3 className="text-xl font-semibold">Your Contract with Yourself</h3>
+              <p className="mt-3 text-sm text-slate-700 leading-relaxed">
+                If you choose to stay hard you pick 2500 minutes. That is your contract with yourself.
+                No one will sign it for you. Zone 2 is not a hobby. It is a choice to stop being
+                average. It is 2500 minutes of silence where no one claps and no one cares. Every
+                step, every pedal stroke, every breath teaches you to control the mind that wants
+                comfort. You either build the engine or you stay soft. You either pay in sweat or you
+                pay in regret. You want to walk into 2026 sharp, lean, ready. Then earn it now. Every
+                minute counts. Every session is a brick in the wall between you and weakness. Stay
+                hard.
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      function MainScreen({ user, setUser, days, db, setMinutes, totalFor, goalFor, planUntilDay, planUntilToday, leaderboard, showConfirm }) {
+        const name = user.name;
+        const rec = db[name] || { level: null, entries: {} };
+        const goal = goalFor(name),
+          total = totalFor(name),
+          remaining = Math.max(0, goal - total);
+        const [allowFuture, setAllowFuture] = React.useState(false);
+        return (
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Welkom {name}</h2>
+                    <p className="text-slate-600 text-sm">
+                      Doel {rec.level} {goal} minuten
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-semibold">{total}</div>
+                    <div className="text-sm text-slate-600">minuten tot nu</div>
+                  </div>
+                </div>
+                <Progress value={goal ? Math.min(100, Math.round((total / goal) * 100)) : 0} />
+                <div className="grid grid-cols-3 gap-3 mt-3 text-center">
+                  <Stat label="Resteert" value={remaining} sub="minuten" />
+                  <Stat label="Plan tot vandaag" value={planUntilToday(name)} sub="minuten" />
+                  <Stat label="Verschil vs plan" value={total - planUntilToday(name)} sub="minuten" />
+                </div>
+                <div className="mt-4 flex gap-3 items-center">
+                  <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>
+                    Uitloggen
+                  </button>
+                  <label className="flex items-center gap-2 text-sm ml-auto">
+                    <input
+                      type="checkbox"
+                      checked={allowFuture}
+                      onChange={e => setAllowFuture(e.target.checked)}
+                    />
+                    Override toekomstige dagen
+                  </label>
+                </div>
+              </Card>
+              <CalendarGrid
+                days={days}
+                entries={rec.entries}
+                onProposeChange={(d, m) => showConfirm(d, m)}
+                goal={goal}
+                planUntilDay={d => planUntilDay(goal, days.length, d, days)}
+                allowFuture={allowFuture}
+              />
+            </div>
+            <div className="space-y-6">
+              <Leaderboard leaderboard={leaderboard} />
+            </div>
+          </div>
+        );
+      }
+
+      const Card = ({ children }) => (
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">{children}</div>
+      );
+      const Stat = ({ label, value, sub }) => (
+        <div className="bg-slate-50 rounded-xl p-3">
+          <div className="text-xs text-slate-600">{label}</div>
+          <div className="text-2xl font-semibold">{value}</div>
+          <div className="text-xs text-slate-600">{sub}</div>
+        </div>
+      );
+      const Progress = ({ value }) => (
+        <div className="mt-4 h-3 w-full bg-slate-100 rounded-full">
+          <div className="h-3 bg-slate-900 rounded-full transition-all" style={{ width: `${value}%` }} />
+        </div>
+      );
+      const Leaderboard = ({ leaderboard }) => (
+        <Card>
+          <h3 className="text-xl font-semibold mb-3 text-center">Leaderboard</h3>
+          {leaderboard.map(r => (
+            <div
+              key={r.name}
+              className="flex justify-between text-sm py-1 border-b border-slate-100"
+            >
+              <div>{r.name}</div>
+              <div>
+                {r.sum}/{r.goal} ({r.pct}%)
+              </div>
+            </div>
+          ))}
+        </Card>
+      );
+
+      function CalendarGrid({ days, entries, onProposeChange, goal, planUntilDay, allowFuture }) {
+        const today = YMD(new Date());
+        return (
+          <Card>
+            <h3 className="text-xl font-semibold mb-1">Jouw 61 dagen</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Dag 1 is 1 november, dag 61 is 31 december
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {days.map(d => {
+                const m = parseInt(entries[d] || 0, 10);
+                const plan = planUntilDay(d);
+                const future = !allowFuture && isFuture(d);
+                return (
+                  <div
+                    key={d}
+                    className={classNames(
+                      "rounded-xl border p-3 flex flex-col",
+                      future ? "opacity-50" : "bg-white"
+                    )}
+                  >
+                    <div className="text-xs text-slate-600">
+                      {fromYMD(d).toLocaleDateString("
