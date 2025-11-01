@@ -10,7 +10,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       html, body, #root { height: 100%; }
-      /* Maandkalender look */
       .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
       .weekday-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     </style>
@@ -73,26 +72,24 @@
       ];
       const pickQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
-      const LS_KEY = "outlive_zone2_data_v2";
+      const LS_KEY = "outlive_zone2_data_v3";
       const loadLocal = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
       const saveLocal = db => localStorage.setItem(LS_KEY, JSON.stringify(db));
 
       // Maandhelpers
       function getMonthMatrix(year, monthIndex) {
-        // monthIndex 0 jan, 11 dec
         const first = new Date(year, monthIndex, 1);
         const last = new Date(year, monthIndex + 1, 0);
         const daysInMonth = last.getDate();
-        const startWeekday = (first.getDay() + 6) % 7; // maak maandag 0, zondag 6
+        const startWeekday = (first.getDay() + 6) % 7; // maandag als 0
         const cells = [];
         for (let i = 0; i < startWeekday; i++) cells.push(null);
         for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, monthIndex, d));
-        // maak volle rijen van zeven
         while (cells.length % 7 !== 0) cells.push(null);
         return cells;
       }
 
-      const WEEKDAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+      const WEEKDAYS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
 
       // ================== APP ==================
       function App() {
@@ -131,6 +128,16 @@
           });
         }
 
+        function resetEntries(name) {
+          if (!confirm("Weet je zeker dat je alle minuten wilt resetten voor deze deelnemer")) return;
+          setDb(cur => {
+            const next = { ...cur };
+            const level = next[name]?.level || null;
+            next[name] = { level, entries: {} };
+            return next;
+          });
+        }
+
         function totalFor(n) {
           const rec = db[n];
           if (!rec) return 0;
@@ -144,11 +151,11 @@
         }
 
         function remainingDaysFromToday(today = new Date()) {
-          // binnen de challenge
-          const inChallengeStart = new Date(Math.max(today.setHours(0,0,0,0), new Date(start).setHours(0,0,0,0)));
+          const { start, end } = challengeRange();
+          const t0 = new Date(Math.max(today.setHours(0,0,0,0), new Date(start).setHours(0,0,0,0)));
           const endNorm = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          if (inChallengeStart > endNorm) return 0;
-          return daysBetweenInclusive(inChallengeStart, endNorm);
+          if (t0 > endNorm) return 0;
+          return daysBetweenInclusive(t0, endNorm);
         }
 
         const leaderboard = React.useMemo(() =>
@@ -178,6 +185,7 @@
                   goalFor={goalFor}
                   remainingDaysFromToday={remainingDaysFromToday}
                   openModal={(ymd, current) => setModal({ dateYMD: ymd, value: current })}
+                  resetEntries={resetEntries}
                   leaderboard={leaderboard}
                 />
               )}
@@ -248,7 +256,7 @@
               <div className="mt-4">
                 <label className="block text-sm">Niveau</label>
                 <div className="mt-2 grid grid-cols-3 gap-2">
-                  {["Easy", "Medium", "Hard"].map(opt => (
+                  {["Easy","Medium","Hard"].map(opt => (
                     <button key={opt} className={classNames("px-3 py-2 rounded-xl border", level===opt?"bg-slate-900 text-white":"bg-white")} onClick={() => setLevelLocal(opt)}>{opt}</button>
                   ))}
                 </div>
@@ -273,25 +281,47 @@
         );
       }
 
-      function MainScreen({ user, db, allDays, setUser, totalFor, goalFor, remainingDaysFromToday, openModal, leaderboard }) {
+      function MainScreen({ user, db, allDays, setUser, totalFor, goalFor, remainingDaysFromToday, openModal, resetEntries, leaderboard }) {
         const name = user.name;
         const rec = db[name] || { level: null, entries: {} };
         const goal = goalFor(name);
         const total = totalFor(name);
         const remaining = Math.max(0, goal - total);
 
-        // resterende dagen inclusief vandaag binnen challenge
         const today = new Date();
         const { start, end } = challengeRange();
         const clampedStart = today < start ? start : today;
         const remDays = Math.max(0, remainingDaysFromToday(clampedStart));
-
         const neededPerDay = remDays > 0 ? Math.ceil(remaining / remDays) : remaining;
 
-        // Kalender voor november en december
         const y = currentYear();
-        const novCells = getMonthMatrix(y, 10); // 10 = november
-        const decCells = getMonthMatrix(y, 11); // 11 = december
+        const novCells = getMonthMatrix(y, 10);
+        const decCells = getMonthMatrix(y, 11);
+
+        // cumulatief tot en met dag
+        function cumulativeUntil(ymd) {
+          let sum = 0;
+          for (const d of allDays) {
+            sum += parseInt(rec.entries?.[d] || 0, 10);
+            if (d === ymd) break;
+          }
+          return sum;
+        }
+        function planCumUntil(ymd) {
+          if (!goal) return 0;
+          const idx = allDays.indexOf(ymd); // 0-based
+          if (idx < 0) return 0;
+          const per = goal / allDays.length;
+          return Math.round(per * (idx + 1));
+        }
+
+        function badges() {
+          const arr = [];
+          if (total >= 750) arr.push("750 minuten");
+          if (total >= 1500) arr.push("1500 minuten");
+          if (total >= 1750) arr.push("1750 minuten");
+          return arr;
+        }
 
         function dayCell(d) {
           if (!d) return <div className="h-16 rounded-xl bg-slate-50"></div>;
@@ -299,14 +329,22 @@
           if (d < start || d > end) return <div className="h-16 rounded-xl bg-slate-50"></div>;
           const minutes = parseInt(rec.entries?.[ymd] || 0, 10);
           const isToday = YMD(new Date()) === ymd;
-          const onClick = () => openModal(ymd, minutes);
 
-          // kleurindicatie op schema
+          const cum = cumulativeUntil(ymd);
+          const plan = planCumUntil(ymd);
+          const delta = cum - plan;
+
           let borderClr = "border-slate-200";
-          if (minutes > 0) borderClr = "border-emerald-300";
+          if (minutes > 0 && delta >= 0) borderClr = "border-emerald-400";
+          else if (minutes > 0 && delta < 0) borderClr = "border-rose-300";
 
           return (
-            <button key={ymd} onClick={onClick} className={classNames("h-16 rounded-xl border p-2 text-left hover:shadow-sm transition", borderClr, isToday ? "ring-2 ring-slate-900" : "")}>
+            <button
+              key={ymd}
+              onClick={() => openModal(ymd, minutes)}
+              className={classNames("h-16 rounded-xl border p-2 text-left hover:shadow-sm transition", borderClr, isToday ? "ring-2 ring-slate-900" : "")}
+              title={`Plan t/m vandaag ${plan} min, cumulatief ${cum} min`}
+            >
               <div className="text-xs text-slate-600">{d.toLocaleDateString("nl-NL",{ day:"2-digit", month:"short" })}</div>
               <div className="text-sm font-semibold mt-1">{minutes} min</div>
             </button>
@@ -322,7 +360,10 @@
                     <h2 className="text-2xl font-semibold">Welkom {name}</h2>
                     <p className="text-slate-600 text-sm">Doel {rec.level || "-"} {goal} minuten</p>
                   </div>
-                  <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>Uitloggen</button>
+                  <div className="flex items-center gap-2">
+                    <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>Uitloggen</button>
+                    <button className="px-3 py-2 rounded-xl border text-rose-700" onClick={() => resetEntries(name)}>Reset deelnemer</button>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-3 text-center">
@@ -330,6 +371,14 @@
                   <Stat label="Nog te gaan" value={remaining} sub="minuten" />
                   <Stat label="Benodigd per dag" value={neededPerDay} sub={remDays > 0 ? `over ${remDays} dagen` : "0 dagen"} />
                 </div>
+
+                {badges().length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {badges().map(b => (
+                      <span key={b} className="px-3 py-1 rounded-full bg-slate-900 text-white text-xs">{b}</span>
+                    ))}
+                  </div>
+                )}
               </Card>
 
               <Card>
