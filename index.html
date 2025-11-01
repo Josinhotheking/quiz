@@ -21,16 +21,16 @@
         participants: [
           { name: "Jos", pin: "1111" },
           { name: "Tom", pin: "2222" },
-          { name: "Gerben Jan", pin: "3333" },
+          { name: "Gerben Jan", pin: "3333" }
         ],
         goals: { Easy: 1750, Medium: 2100, Hard: 2500 },
-        GAS_WEB_APP_URL: "",
+        GAS_WEB_APP_URL: ""
       };
 
       // ================== HELPERS ==================
       const YMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const fromYMD = s => new Date(`${s}T00:00:00`);
-      const isFuture = d => fromYMD(d) > new Date();
+      const isFuture = ymd => fromYMD(ymd) > new Date();
 
       function currentChallengeRange() {
         const year = new Date().getFullYear();
@@ -46,26 +46,26 @@
           arr.push(YMD(d));
           d.setDate(d.getDate() + 1);
         }
-        return arr;
+        return arr; // 61 dagen
       }
 
       function radialStyle() {
         return {
-          background:
-            "radial-gradient(1200px circle at 50% 20%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 25%, rgba(210,236,255,0.9) 38%, rgba(232,249,225,0.85) 52%, rgba(255,238,246,0.85) 66%, rgba(255,255,255,1) 100%)",
-          minHeight: "100vh",
+          background: "radial-gradient(1200px circle at 50% 20%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 25%, rgba(210,236,255,0.9) 38%, rgba(232,249,225,0.85) 52%, rgba(255,238,246,0.85) 66%, rgba(255,255,255,1) 100%)",
+          minHeight: "100vh"
         };
       }
 
       const classNames = (...a) => a.filter(Boolean).join(" ");
+
       const QUOTES = [
-        "When you think you're done, you're only 40% done.",
+        "When you think you are done, you are only 40 percent done.",
         "Stay disciplined when motivation fades.",
-        "You don't find toughness, you build it.",
-        "Every minute counts. Stay hard.",
-        "It’s you vs you, no one else.",
+        "You do not find toughness, you build it.",
+        "Every minute counts, stay hard.",
+        "It is you versus you, no one else.",
         "Be uncommon amongst uncommon people.",
-        "Suffering is the true test of life.",
+        "Suffering is the true test of life."
       ];
       const pickQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
@@ -73,14 +73,66 @@
       const loadLocal = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
       const saveLocal = db => localStorage.setItem(LS_KEY, JSON.stringify(db));
 
+      // ================== SLIDER INPUT ==================
+      function MinutesSlider({ value, disabled, onCommit, min = 0, max = 240 }) {
+        const [val, setVal] = React.useState(Number.isFinite(value) ? value : 0);
+        React.useEffect(() => { setVal(Number.isFinite(value) ? value : 0); }, [value]);
+
+        function clamp(n) { return Math.max(min, Math.min(max, n | 0)); }
+        function commit(n) { onCommit(clamp(n)); }
+
+        return (
+          <div className="mt-2">
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={1}
+              value={val}
+              disabled={disabled}
+              onChange={e => setVal(parseInt(e.target.value, 10) || 0)}
+              onMouseUp={() => !disabled && commit(val)}
+              onTouchEnd={() => !disabled && commit(val)}
+              className="w-full"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className={classNames("w-20 border rounded-lg px-2 py-2", disabled ? "bg-slate-100 text-slate-500" : "")}
+                value={String(val)}
+                disabled={disabled}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D+/g, "").slice(0, 4);
+                  setVal(v === "" ? 0 : parseInt(v, 10));
+                }}
+                onBlur={() => !disabled && commit(val)}
+              />
+              <span className="text-sm text-slate-600">minuten</span>
+              {!disabled && (
+                <div className="ml-auto flex gap-1">
+                  {[30, 45, 60, 75].map(n => (
+                    <button key={n} className="px-2 py-1 text-sm rounded-lg border" onClick={() => { setVal(n); commit(n); }}>{n}</button>
+                  ))}
+                  <button className="px-2 py-1 text-sm rounded-lg border" onClick={() => { const n = clamp(val + 5); setVal(n); commit(n); }}>+5</button>
+                  <button className="px-2 py-1 text-sm rounded-lg border" onClick={() => { const n = clamp(val + 10); setVal(n); commit(n); }}>+10</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       // ================== APP ==================
       function App() {
         const { start, end } = React.useMemo(() => currentChallengeRange(), []);
         const days = React.useMemo(() => enumerateDays(start, end), [start, end]);
+
         const [db, setDb] = React.useState(loadLocal());
         const [user, setUser] = React.useState(null);
         const [quote, setQuote] = React.useState("");
-        const [pending, setPending] = React.useState(null);
+        const [pending, setPending] = React.useState(null); // { date, minutes }
 
         React.useEffect(() => saveLocal(db), [db]);
 
@@ -95,7 +147,7 @@
           setDb(cur => {
             const next = { ...cur };
             next[name] = next[name] || { level: null, entries: {} };
-            if (!next[name].level) next[name].level = level;
+            if (!next[name].level) next[name].level = level; // keuze vastzetten
             return next;
           });
         }
@@ -121,9 +173,10 @@
           return CONFIG.goals[rec.level];
         }
 
-        function planUntilDay(goal, total, ymd, all) {
-          const i = all.indexOf(ymd) + 1;
-          return Math.round((goal / total) * i);
+        function planUntilDay(goal, totalDays, ymd, allDays) {
+          const idx = allDays.indexOf(ymd) + 1;
+          const perDay = goal / totalDays;
+          return Math.round(perDay * idx);
         }
 
         function planUntilToday(n) {
@@ -134,18 +187,19 @@
           let idx = days.indexOf(today) + 1;
           if (idx < 0) idx = 0;
           if (idx > days.length) idx = days.length;
-          return Math.round((goal / days.length) * idx);
+          const perDay = goal / days.length;
+          return Math.round(perDay * idx);
         }
 
         const leaderboard = React.useMemo(
           () =>
             CONFIG.participants
               .map(p => {
-                const g = goalFor(p.name),
-                  s = totalFor(p.name);
-                const pct = g ? Math.min(100, Math.round((s / g) * 100)) : 0;
-                const onPlan = g ? s - planUntilToday(p.name) : 0;
-                return { name: p.name, goal: g, sum: s, pct, onPlan };
+                const goal = goalFor(p.name);
+                const sum = totalFor(p.name);
+                const pct = goal ? Math.min(100, Math.round((sum / goal) * 100)) : 0;
+                const onPlan = goal ? sum - planUntilToday(p.name) : 0;
+                return { name: p.name, goal, sum, pct, onPlan };
               })
               .sort((a, b) => b.pct - a.pct || b.sum - a.sum),
           [db]
@@ -169,9 +223,10 @@
                   planUntilDay={planUntilDay}
                   planUntilToday={planUntilToday}
                   leaderboard={leaderboard}
-                  showConfirm={(d, m) => setPending({ date: d, minutes: m })}
+                  showConfirm={(d, m) => setPending({ date: d, minutes: Math.max(0, parseInt(m || 0, 10)) })}
                 />
               )}
+
               {pending && (
                 <ConfirmModal
                   date={pending.date}
@@ -184,16 +239,12 @@
                   onCancel={() => setPending(null)}
                 />
               )}
+
               {quote && (
                 <div className="fixed inset-x-0 bottom-0 p-4">
                   <div className="max-w-3xl mx-auto rounded-2xl bg-white/90 backdrop-blur shadow-lg p-4 text-center border border-slate-200">
                     <p className="text-lg font-medium italic">{quote}</p>
-                    <button
-                      className="mt-3 px-4 py-2 rounded-xl bg-slate-900 text-white"
-                      onClick={() => setQuote("")}
-                    >
-                      Sluiten
-                    </button>
+                    <button className="mt-3 px-4 py-2 rounded-xl bg-slate-900 text-white" onClick={() => setQuote("")}>Sluiten</button>
                   </div>
                 </div>
               )}
@@ -202,12 +253,12 @@
         );
       }
 
-      // ================== COMPONENTS ==================
+      // ================== UI COMPONENTS ==================
       const Header = () => (
         <div className="mb-8 text-center">
           <div className="text-xs tracking-widest text-slate-600">Zone 2 Challenge</div>
           <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mt-1">Outlive Zone 2</h1>
-          <p className="text-slate-600 mt-2">November – December</p>
+          <p className="text-slate-600 mt-2">November, December</p>
         </div>
       );
 
@@ -216,6 +267,7 @@
         const [pin, setPin] = React.useState("");
         const [level, setLevelLocal] = React.useState("Easy");
         const [error, setError] = React.useState("");
+
         function handleLogin() {
           const p = CONFIG.participants.find(x => x.name === name);
           if (!p || p.pin !== pin) {
@@ -226,75 +278,67 @@
           setLevel(name, level);
           onLogin({ name });
         }
+
         return (
-          <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 items-start">
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
               <h2 className="text-2xl font-semibold">Inloggen</h2>
+
               <div className="mt-4">
                 <label className="block text-sm">Deelnemer</label>
-                <select
-                  className="mt-1 w-full border rounded-xl px-3 py-2"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                >
+                <select className="mt-1 w-full border rounded-xl px-3 py-2" value={name} onChange={e => setName(e.target.value)}>
                   {CONFIG.participants.map(p => (
-                    <option key={p.name} value={p.name}>
-                      {p.name}
-                    </option>
+                    <option key={p.name} value={p.name}>{p.name}</option>
                   ))}
                 </select>
               </div>
+
               <div className="mt-4">
                 <label className="block text-sm">Pincode</label>
-                <input
-                  className="mt-1 w-full border rounded-xl px-3 py-2"
-                  type="password"
-                  inputMode="numeric"
-                  value={pin}
-                  onChange={e => setPin(e.target.value)}
-                  placeholder="Vier cijfers"
-                />
+                <input className="mt-1 w-full border rounded-xl px-3 py-2" type="password" inputMode="numeric" value={pin} onChange={e => setPin(e.target.value)} placeholder="Vier cijfers" />
               </div>
+
               <div className="mt-4">
                 <label className="block text-sm">Niveau</label>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {["Easy", "Medium", "Hard"].map(opt => (
                     <button
                       key={opt}
-                      className={classNames(
-                        "px-3 py-2 rounded-xl border",
-                        level === opt ? "bg-slate-900 text-white" : "bg-white"
-                      )}
+                      className={classNames("px-3 py-2 rounded-xl border", level === opt ? "bg-slate-900 text-white" : "bg-white")}
                       onClick={() => setLevelLocal(opt)}
                     >
                       {opt}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-600 mt-1">
-                  Let op, keuze is eenmalig en wordt vastgezet bij eerste inlog.
-                </p>
+                <p className="text-xs text-slate-600 mt-1">Let op, je keuze is eenmalig en kan na de eerste inlog niet meer worden gewijzigd</p>
+
+                <div className="mt-3 text-sm">
+                  <div className="rounded-xl border p-3 bg-slate-50">
+                    <div className="font-semibold">Doelen</div>
+                    <ul className="mt-1 space-y-1">
+                      <li>Easy, 1750 minuten</li>
+                      <li>Medium, 2100 minuten</li>
+                      <li>Hard, 2500 minuten</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
+
               {error && <p className="mt-3 text-red-600">{error}</p>}
-              <button
-                className="mt-6 w-full bg-slate-900 text-white rounded-xl py-3"
-                onClick={handleLogin}
-              >
-                Bevestig en start
-              </button>
+              <button className="mt-6 w-full bg-slate-900 text-white rounded-xl py-3" onClick={handleLogin}>Bevestig en start, keuze wordt vastgezet</button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-              <h3 className="text-xl font-semibold">Your Contract with Yourself</h3>
-              <p className="mt-3 text-sm text-slate-700 leading-relaxed">
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Your Contract with Yourself</h3>
+              <p className="text-sm leading-relaxed text-slate-700">
                 If you choose to stay hard you pick 2500 minutes. That is your contract with yourself.
-                No one will sign it for you. Zone 2 is not a hobby. It is a choice to stop being
-                average. It is 2500 minutes of silence where no one claps and no one cares. Every
-                step, every pedal stroke, every breath teaches you to control the mind that wants
-                comfort. You either build the engine or you stay soft. You either pay in sweat or you
-                pay in regret. You want to walk into 2026 sharp, lean, ready. Then earn it now. Every
-                minute counts. Every session is a brick in the wall between you and weakness. Stay
-                hard.
+                No one will sign it for you. Zone 2 is not a hobby. It is a choice to stop being average.
+                It is 2500 minutes of silence where no one claps and no one cares.
+                Every step, every pedal stroke, every breath teaches you to control the mind that wants comfort.
+                You either build the engine or you stay soft. You either pay in sweat or you pay in regret.
+                You want to walk into 2026 sharp, lean, ready. Then earn it now.
+                Every minute counts. Every session is a brick in the wall between you and weakness. Stay hard.
               </p>
             </div>
           </div>
@@ -304,10 +348,11 @@
       function MainScreen({ user, setUser, days, db, setMinutes, totalFor, goalFor, planUntilDay, planUntilToday, leaderboard, showConfirm }) {
         const name = user.name;
         const rec = db[name] || { level: null, entries: {} };
-        const goal = goalFor(name),
-          total = totalFor(name),
-          remaining = Math.max(0, goal - total);
+        const goal = goalFor(name);
+        const total = totalFor(name);
+        const remaining = Math.max(0, goal - total);
         const [allowFuture, setAllowFuture] = React.useState(false);
+
         return (
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -315,9 +360,7 @@
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-2xl font-semibold">Welkom {name}</h2>
-                    <p className="text-slate-600 text-sm">
-                      Doel {rec.level} {goal} minuten
-                    </p>
+                    <p className="text-slate-600 text-sm">Doel {rec.level} {goal} minuten</p>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-semibold">{total}</div>
@@ -331,19 +374,14 @@
                   <Stat label="Verschil vs plan" value={total - planUntilToday(name)} sub="minuten" />
                 </div>
                 <div className="mt-4 flex gap-3 items-center">
-                  <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>
-                    Uitloggen
-                  </button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>Uitloggen</button>
                   <label className="flex items-center gap-2 text-sm ml-auto">
-                    <input
-                      type="checkbox"
-                      checked={allowFuture}
-                      onChange={e => setAllowFuture(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={allowFuture} onChange={e => setAllowFuture(e.target.checked)} />
                     Override toekomstige dagen
                   </label>
                 </div>
               </Card>
+
               <CalendarGrid
                 days={days}
                 entries={rec.entries}
@@ -353,6 +391,7 @@
                 allowFuture={allowFuture}
               />
             </div>
+
             <div className="space-y-6">
               <Leaderboard leaderboard={leaderboard} />
             </div>
@@ -360,9 +399,7 @@
         );
       }
 
-      const Card = ({ children }) => (
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">{children}</div>
-      );
+      const Card = ({ children }) => <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">{children}</div>;
       const Stat = ({ label, value, sub }) => (
         <div className="bg-slate-50 rounded-xl p-3">
           <div className="text-xs text-slate-600">{label}</div>
@@ -379,39 +416,58 @@
         <Card>
           <h3 className="text-xl font-semibold mb-3 text-center">Leaderboard</h3>
           {leaderboard.map(r => (
-            <div
-              key={r.name}
-              className="flex justify-between text-sm py-1 border-b border-slate-100"
-            >
+            <div key={r.name} className="flex justify-between text-sm py-1 border-b border-slate-100">
               <div>{r.name}</div>
-              <div>
-                {r.sum}/{r.goal} ({r.pct}%)
-              </div>
+              <div>{r.sum}/{r.goal} ({r.pct}%)</div>
             </div>
           ))}
         </Card>
       );
 
       function CalendarGrid({ days, entries, onProposeChange, goal, planUntilDay, allowFuture }) {
-        const today = YMD(new Date());
         return (
           <Card>
             <h3 className="text-xl font-semibold mb-1">Jouw 61 dagen</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Dag 1 is 1 november, dag 61 is 31 december
-            </p>
+            <p className="text-sm text-slate-600 mb-4">Dag 1 is 1 november, dag 61 is 31 december</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {days.map(d => {
                 const m = parseInt(entries[d] || 0, 10);
                 const plan = planUntilDay(d);
                 const future = !allowFuture && isFuture(d);
                 return (
-                  <div
-                    key={d}
-                    className={classNames(
-                      "rounded-xl border p-3 flex flex-col",
-                      future ? "opacity-50" : "bg-white"
-                    )}
-                  >
-                    <div className="text-xs text-slate-600">
-                      {fromYMD(d).toLocaleDateString("
+                  <div key={d} className={classNames("rounded-xl border p-3 flex flex-col", future ? "opacity-50" : "bg-white")}>
+                    <div className="text-xs text-slate-600">{fromYMD(d).toLocaleDateString("nl-NL", { weekday: "short", day: "2-digit", month: "short" })}</div>
+                    <MinutesSlider value={m} disabled={future} min={0} max={240} onCommit={val => onProposeChange(d, String(val))} />
+                    <div className="mt-2 text-xs text-slate-600">Op schema {plan} min</div>
+                    {!future && <div className="text-xs text-slate-500 mt-1">Wijziging wordt pas opgeslagen na bevestigen</div>}
+                    {future && <div className="text-xs text-slate-500 mt-1">Toekomstige dag</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      }
+
+      function ConfirmModal({ date, minutes, onConfirm, onCancel }) {
+        const confirmBtn = "px-4 py-2 rounded-xl bg-slate-900 text-white";
+        const cancelBtn = "px-4 py-2 rounded-xl border";
+        const txt = `Bevestig ${minutes} minuten voor ${fromYMD(date).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })}`;
+        return (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+            <div className="bg-white rounded-2xl shadow-lg p-6 w-80 text-center">
+              <p className="text-lg font-medium mb-4">{txt}</p>
+              <div className="flex justify-center gap-3">
+                <button className={confirmBtn} onClick={onConfirm}>Bevestigen</button>
+                <button className={cancelBtn} onClick={onCancel}>Annuleer</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
