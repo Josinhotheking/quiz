@@ -1,487 +1,433 @@
-<!DOCTYPE html>
-<html lang="nl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Outlive Zone 2 Challenge</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      html, body, #root { height: 100%; }
-      .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-      .weekday-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
+<style>
+  :root {
+    --bg0: #03040c;
+    --bg1: #050b22;
+    --bg2: #08133a;
+    --panel: rgba(10, 18, 48, 0.72);
+    --panel2: rgba(8, 14, 38, 0.86);
 
-    <script type="text/babel">
-      // ================== CONFIG ==================
-      const CONFIG = {
-        participants: [
-          { name: "Jos", pin: "1111" },
-          { name: "Tom", pin: "2222" },
-          { name: "Gerben Jan", pin: "3333" }
-        ],
-        goals: { Easy: 1750, Medium: 2100, Hard: 2500 }
-      };
+    --gold: #f0d37a;
+    --gold2: #b98b2a;
 
-      // ================== HELPERS ==================
-      const YMD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-      const fromYMD = s => new Date(`${s}T00:00:00`);
+    --ice: #cfe8ff;
+    --red: #c63b3b;
+    --green: #2b9a5a;
 
-      function currentYear() { return new Date().getFullYear(); }
-      function challengeRange() {
-        const y = currentYear();
-        return { start: new Date(`${y}-11-01T00:00:00`), end: new Date(`${y}-12-31T00:00:00`) };
-      }
+    --text: #eef3ff;
+    --muted: rgba(238, 243, 255, 0.72);
 
-      function enumerateDays(start, end) {
-        const out = [];
-        const d = new Date(start);
-        while (d <= end) { out.push(YMD(d)); d.setDate(d.getDate() + 1); }
-        return out;
-      }
+    --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    --shadow2: 0 30px 90px rgba(0, 0, 0, 0.65);
+    --radius: 18px;
 
-      function daysBetweenInclusive(d1, d2) {
-        const a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
-        const b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
-        const ms = b - a;
-        return Math.floor(ms / 86400000) + 1;
-      }
+    --ring: rgba(240, 211, 122, 0.65);
+    --ring2: rgba(240, 211, 122, 0.28);
+  }
 
-      function radialStyle() {
-        return {
-          background: "radial-gradient(1200px circle at 50% 20%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 25%, rgba(210,236,255,0.9) 38%, rgba(232,249,225,0.85) 52%, rgba(255,238,246,0.85) 66%, rgba(255,255,255,1) 100%)",
-          minHeight: "100vh"
-        };
-      }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
 
-      const classNames = (...a) => a.filter(Boolean).join(" ");
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
 
-      const QUOTES = [
-        "When you think you are done, you are only 40 percent done.",
-        "Stay disciplined when motivation fades.",
-        "You do not find toughness, you build it.",
-        "Every minute counts, stay hard.",
-        "It is you versus you, no one else.",
-        "Be uncommon amongst uncommon people.",
-        "Suffering is the true test of life."
-      ];
-      const pickQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    background:
+      radial-gradient(1100px 700px at 50% -10%, rgba(240, 211, 122, 0.10) 0%, transparent 60%),
+      radial-gradient(900px 700px at 20% 15%, rgba(80, 140, 255, 0.18) 0%, transparent 55%),
+      radial-gradient(900px 700px at 80% 20%, rgba(190, 70, 160, 0.14) 0%, transparent 60%),
+      linear-gradient(160deg, var(--bg0), var(--bg1), var(--bg2));
+  }
 
-      const LS_KEY = "outlive_zone2_data_v3";
-      const loadLocal = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
-      const saveLocal = db => localStorage.setItem(LS_KEY, JSON.stringify(db));
+  .snow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.40) 0 1px, transparent 2px),
+      radial-gradient(circle at 60% 20%, rgba(255,255,255,0.32) 0 1px, transparent 2px),
+      radial-gradient(circle at 80% 60%, rgba(255,255,255,0.22) 0 1px, transparent 2px);
+    background-size: 260px 260px, 340px 340px, 420px 420px;
+    animation: snowMove 18s linear infinite;
+    opacity: 0.45;
+  }
 
-      // Maandhelpers
-      function getMonthMatrix(year, monthIndex) {
-        const first = new Date(year, monthIndex, 1);
-        const last = new Date(year, monthIndex + 1, 0);
-        const daysInMonth = last.getDate();
-        const startWeekday = (first.getDay() + 6) % 7; // maandag als 0
-        const cells = [];
-        for (let i = 0; i < startWeekday; i++) cells.push(null);
-        for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, monthIndex, d));
-        while (cells.length % 7 !== 0) cells.push(null);
-        return cells;
-      }
+  @keyframes snowMove {
+    from { transform: translateY(-40px); }
+    to { transform: translateY(140px); }
+  }
 
-      const WEEKDAYS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+  .topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    gap: 16px;
+  }
 
-      // ================== APP ==================
-      function App() {
-        const { start, end } = React.useMemo(() => challengeRange(), []);
-        const allDays = React.useMemo(() => enumerateDays(start, end), [start, end]);
+  .brand { display: flex; align-items: center; gap: 12px; }
 
-        const [db, setDb] = React.useState(loadLocal());
-        const [user, setUser] = React.useState(null);
-        const [quote, setQuote] = React.useState("");
-        const [modal, setModal] = React.useState(null); // { dateYMD, value }
+  .badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    color: #0a0f2b;
+    background: radial-gradient(circle at 30% 30%, #fff3c9, var(--gold));
+    box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    position: relative;
+  }
 
-        React.useEffect(() => saveLocal(db), [db]);
+  .badge::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(240,211,122,0.18), transparent 62%);
+    filter: blur(2px);
+    opacity: 0.85;
+    pointer-events: none;
+  }
 
-        function ensureUser(name) {
-          setDb(cur => {
-            if (!cur[name]) cur[name] = { level: null, entries: {} };
-            return { ...cur };
-          });
-        }
+  .brandTitle { font-weight: 900; letter-spacing: 0.2px; }
+  .brandSub { color: var(--muted); font-size: 13px; margin-top: 2px; }
 
-        function setLevel(name, level) {
-          setDb(cur => {
-            const next = { ...cur };
-            next[name] = next[name] || { level: null, entries: {} };
-            if (!next[name].level) next[name].level = level;
-            return next;
-          });
-        }
+  .stats { display: flex; gap: 14px; }
+  .stat {
+    background: rgba(0,0,0,0.20);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 10px 12px;
+    min-width: 160px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+  }
+  .statLabel { font-size: 12px; color: var(--muted); letter-spacing: 0.2px; }
+  .statValue { margin-top: 4px; font-weight: 900; }
 
-        function setMinutes(name, ymd, mins) {
-          setDb(cur => {
-            const next = { ...cur };
-            next[name] = next[name] || { level: null, entries: {} };
-            next[name].entries = { ...next[name].entries, [ymd]: mins };
-            return next;
-          });
-        }
+  .shell {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    gap: 16px;
+    padding: 0 18px 18px 18px;
+  }
 
-        function resetEntries(name) {
-          if (!confirm("Weet je zeker dat je alle minuten wilt resetten voor deze deelnemer")) return;
-          setDb(cur => {
-            const next = { ...cur };
-            const level = next[name]?.level || null;
-            next[name] = { level, entries: {} };
-            return next;
-          });
-        }
+  .ladderPanel, .gamePanel {
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
 
-        function totalFor(n) {
-          const rec = db[n];
-          if (!rec) return 0;
-          return Object.values(rec.entries || {}).reduce((a, b) => a + (parseInt(b || 0, 10) || 0), 0);
-        }
+  .ladderPanel::before,
+  .gamePanel::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, rgba(240,211,122,0.10), transparent 35%, rgba(90,160,255,0.08), transparent 70%, rgba(240,211,122,0.10));
+    opacity: 0.9;
+    pointer-events: none;
+  }
 
-        function goalFor(n) {
-          const rec = db[n];
-          if (!rec || !rec.level) return 0;
-          return CONFIG.goals[rec.level];
-        }
+  .ladderPanel { padding: 14px; }
+  .panelTitle { font-weight: 900; margin-bottom: 10px; color: var(--gold); letter-spacing: 0.3px; }
 
-        function remainingDaysFromToday(today = new Date()) {
-          const { start, end } = challengeRange();
-          const t0 = new Date(Math.max(today.setHours(0,0,0,0), new Date(start).setHours(0,0,0,0)));
-          const endNorm = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          if (t0 > endNorm) return 0;
-          return daysBetweenInclusive(t0, endNorm);
-        }
+  .ladder {
+    margin: 0;
+    padding-left: 22px;
+    display: grid;
+    gap: 7px;
+  }
 
-        const leaderboard = React.useMemo(() =>
-          CONFIG.participants
-            .map(p => {
-              const g = goalFor(p.name);
-              const s = totalFor(p.name);
-              const pct = g ? Math.min(100, Math.round((s / g) * 100)) : 0;
-              return { name: p.name, goal: g, sum: s, pct };
-            })
-            .sort((a, b) => b.pct - a.pct || b.sum - a.sum),
-        [db]);
+  .ladder li {
+    list-style: decimal;
+    padding: 9px 10px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(255,255,255,0.10);
+    font-weight: 900;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    position: relative;
+  }
 
-        return (
-          <div style={radialStyle()} className="text-slate-900">
-            <div className="max-w-6xl mx-auto px-4 py-8">
-              <Header />
-              {!user ? (
-                <LoginScreen onLogin={setUser} ensureUser={ensureUser} setLevel={setLevel} />
-              ) : (
-                <MainScreen
-                  user={user}
-                  db={db}
-                  allDays={allDays}
-                  setUser={setUser}
-                  totalFor={totalFor}
-                  goalFor={goalFor}
-                  remainingDaysFromToday={remainingDaysFromToday}
-                  openModal={(ymd, current) => setModal({ dateYMD: ymd, value: current })}
-                  resetEntries={resetEntries}
-                  leaderboard={leaderboard}
-                />
-              )}
+  .ladder li.safe {
+    border-color: rgba(43, 154, 90, 0.55);
+  }
 
-              {modal && user && (
-                <MinutesModal
-                  dateYMD={modal.dateYMD}
-                  initialValue={modal.value}
-                  onCancel={() => setModal(null)}
-                  onSave={(val) => {
-                    setMinutes(user.name, modal.dateYMD, val);
-                    setModal(null);
-                    setQuote(pickQuote());
-                  }}
-                />
-              )}
+  .ladder li.active {
+    border-color: rgba(240,211,122,0.55);
+    background: rgba(240,211,122,0.12);
+    box-shadow: 0 10px 30px rgba(240,211,122,0.12);
+  }
 
-              {quote && (
-                <div className="fixed inset-x-0 bottom-0 p-4">
-                  <div className="max-w-3xl mx-auto rounded-2xl bg-white/90 backdrop-blur shadow-lg p-4 text-center border border-slate-200">
-                    <p className="text-lg font-medium italic">{quote}</p>
-                    <button className="mt-3 px-4 py-2 rounded-xl bg-slate-900 text-white" onClick={() => setQuote("")}>Sluiten</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      }
+  .ladder li.active::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -6px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(240,211,122,0.75), transparent);
+  }
 
-      // ================== UI COMPONENTS ==================
-      const Header = () => (
-        <div className="mb-8 text-center">
-          <div className="text-xs tracking-widest text-slate-600">Zone 2 Challenge</div>
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mt-1">Outlive Zone 2</h1>
-          <p className="text-slate-600 mt-2">November en december</p>
-        </div>
-      );
+  .safetyNote { margin-top: 12px; color: var(--muted); font-size: 12px; }
 
-      function LoginScreen({ onLogin, ensureUser, setLevel }) {
-        const [name, setName] = React.useState(CONFIG.participants[0].name);
-        const [pin, setPin] = React.useState("");
-        const [level, setLevelLocal] = React.useState("Easy");
-        const [error, setError] = React.useState("");
+  .gamePanel { padding: 16px; min-height: 560px; }
 
-        function handleLogin() {
-          const p = CONFIG.participants.find(x => x.name === name);
-          if (!p || p.pin !== pin) { setError("Verkeerde pincode"); return; }
-          ensureUser(name);
-          setLevel(name, level);
-          onLogin({ name });
-        }
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: block; }
 
-        return (
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 items-start">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-              <h2 className="text-2xl font-semibold">Inloggen</h2>
-              <div className="mt-4">
-                <label className="block text-sm">Deelnemer</label>
-                <select className="mt-1 w-full border rounded-xl px-3 py-2" value={name} onChange={e => setName(e.target.value)}>
-                  {CONFIG.participants.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-                </select>
-              </div>
-              <div className="mt-4">
-                <label className="block text-sm">Pincode</label>
-                <input className="mt-1 w-full border rounded-xl px-3 py-2" type="password" inputMode="numeric" value={pin} onChange={e => setPin(e.target.value)} placeholder="Vier cijfers" />
-              </div>
-              <div className="mt-4">
-                <label className="block text-sm">Niveau</label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {["Easy","Medium","Hard"].map(opt => (
-                    <button key={opt} className={classNames("px-3 py-2 rounded-xl border", level===opt?"bg-slate-900 text-white":"bg-white")} onClick={() => setLevelLocal(opt)}>{opt}</button>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-600 mt-1">Let op, keuze is eenmalig en wordt vastgezet bij eerste inlog</p>
-              </div>
-              {error && <p className="mt-3 text-red-600">{error}</p>}
-              <button className="mt-6 w-full bg-slate-900 text-white rounded-xl py-3" onClick={handleLogin}>Bevestig en start</button>
-            </div>
+  .heroTitle { margin: 8px 0 10px 0; font-size: 32px; font-weight: 900; letter-spacing: 0.2px; }
+  .heroText { margin: 0 0 14px 0; color: var(--muted); max-width: 66ch; }
 
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-              <h3 className="text-xl font-semibold text-slate-900 mb-3">Your Contract with Yourself</h3>
-              <p className="text-sm leading-relaxed text-slate-700">
-                If you choose to stay hard you pick 2500 minutes. That is your contract with yourself.
-                No one will sign it for you. Zone 2 is not a hobby. It is a choice to stop being average.
-                It is 2500 minutes of silence where no one claps and no one cares. Every step, every pedal stroke,
-                every breath teaches you to control the mind that wants comfort. You either build the engine or you stay soft.
-                You either pay in sweat or you pay in regret. You want to walk into 2026 sharp, lean, ready. Then earn it now.
-                Every minute counts. Every session is a brick in the wall between you and weakness. Stay hard.
-              </p>
-            </div>
-          </div>
-        );
-      }
+  .startRow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 
-      function MainScreen({ user, db, allDays, setUser, totalFor, goalFor, remainingDaysFromToday, openModal, resetEntries, leaderboard }) {
-        const name = user.name;
-        const rec = db[name] || { level: null, entries: {} };
-        const goal = goalFor(name);
-        const total = totalFor(name);
-        const remaining = Math.max(0, goal - total);
+  .btn {
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color: var(--text);
+    padding: 11px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+  }
 
-        const today = new Date();
-        const { start, end } = challengeRange();
-        const clampedStart = today < start ? start : today;
-        const remDays = Math.max(0, remainingDaysFromToday(clampedStart));
-        const neededPerDay = remDays > 0 ? Math.ceil(remaining / remDays) : remaining;
+  .btn:hover { border-color: rgba(240, 211, 122, 0.45); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        const y = currentYear();
-        const novCells = getMonthMatrix(y, 10);
-        const decCells = getMonthMatrix(y, 11);
+  .btn.primary {
+    background: linear-gradient(180deg, rgba(240,211,122,0.26), rgba(185,139,42,0.16));
+    border-color: rgba(240, 211, 122, 0.55);
+  }
 
-        // cumulatief tot en met dag
-        function cumulativeUntil(ymd) {
-          let sum = 0;
-          for (const d of allDays) {
-            sum += parseInt(rec.entries?.[d] || 0, 10);
-            if (d === ymd) break;
-          }
-          return sum;
-        }
-        function planCumUntil(ymd) {
-          if (!goal) return 0;
-          const idx = allDays.indexOf(ymd); // 0-based
-          if (idx < 0) return 0;
-          const per = goal / allDays.length;
-          return Math.round(per * (idx + 1));
-        }
+  .btn.danger {
+    background: linear-gradient(180deg, rgba(198,59,59,0.22), rgba(198,59,59,0.10));
+    border-color: rgba(198, 59, 59, 0.55);
+  }
 
-        function badges() {
-          const arr = [];
-          if (total >= 750) arr.push("750 minuten");
-          if (total >= 1500) arr.push("1500 minuten");
-          if (total >= 1750) arr.push("1750 minuten");
-          return arr;
-        }
+  .rules {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.24);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.35);
+  }
 
-        function dayCell(d) {
-          if (!d) return <div className="h-16 rounded-xl bg-slate-50"></div>;
-          const ymd = YMD(d);
-          if (d < start || d > end) return <div className="h-16 rounded-xl bg-slate-50"></div>;
-          const minutes = parseInt(rec.entries?.[ymd] || 0, 10);
-          const isToday = YMD(new Date()) === ymd;
+  .rules.hidden { display: none; }
+  .rulesTitle { font-weight: 900; color: var(--gold); margin-bottom: 8px; }
+  .rulesList { margin: 0; padding-left: 18px; color: var(--muted); }
 
-          const cum = cumulativeUntil(ymd);
-          const plan = planCumUntil(ymd);
-          const delta = cum - plan;
+  .langRow { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 6px 0; }
 
-          let borderClr = "border-slate-200";
-          if (minutes > 0 && delta >= 0) borderClr = "border-emerald-400";
-          else if (minutes > 0 && delta < 0) borderClr = "border-rose-300";
+  .flagBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 16px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--text);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+  }
+  .flagBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
 
-          return (
-            <button
-              key={ymd}
-              onClick={() => openModal(ymd, minutes)}
-              className={classNames("h-16 rounded-xl border p-2 text-left hover:shadow-sm transition", borderClr, isToday ? "ring-2 ring-slate-900" : "")}
-              title={`Plan t/m vandaag ${plan} min, cumulatief ${cum} min`}
-            >
-              <div className="text-xs text-slate-600">{d.toLocaleDateString("nl-NL",{ day:"2-digit", month:"short" })}</div>
-              <div className="text-sm font-semibold mt-1">{minutes} min</div>
-            </button>
-          );
-        }
+  .flagIcon {
+    width: 28px;
+    height: 18px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.18);
+  }
 
-        return (
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-2xl font-semibold">Welkom {name}</h2>
-                    <p className="text-slate-600 text-sm">Doel {rec.level || "-"} {goal} minuten</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="px-3 py-2 rounded-xl border" onClick={() => setUser(null)}>Uitloggen</button>
-                    <button className="px-3 py-2 rounded-xl border text-rose-700" onClick={() => resetEntries(name)}>Reset deelnemer</button>
-                  </div>
-                </div>
+  .lifelines { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 
-                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                  <Stat label="Tot nu toe" value={total} sub="minuten" />
-                  <Stat label="Nog te gaan" value={remaining} sub="minuten" />
-                  <Stat label="Benodigd per dag" value={neededPerDay} sub={remDays > 0 ? `over ${remDays} dagen` : "0 dagen"} />
-                </div>
+  .lifeBtn {
+    border-radius: 999px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color: var(--text);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+  }
 
-                {badges().length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {badges().map(b => (
-                      <span key={b} className="px-3 py-1 rounded-full bg-slate-900 text-white text-xs">{b}</span>
-                    ))}
-                  </div>
-                )}
-              </Card>
+  .lifeBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
 
-              <Card>
-                <h3 className="text-xl font-semibold mb-2">November</h3>
-                <div className="weekday-row text-xs text-slate-500 mb-2">
-                  {WEEKDAYS.map(w => <div key={w} className="text-center">{w}</div>)}
-                </div>
-                <div className="month-grid">
-                  {novCells.map((d, i) => <div key={i}>{dayCell(d)}</div>)}
-                </div>
-              </Card>
+  .questionCard {
+    padding: 14px;
+    border-radius: var(--radius);
+    background: rgba(8, 14, 38, 0.88);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: var(--shadow2);
+    position: relative;
+    overflow: hidden;
+  }
 
-              <Card>
-                <h3 className="text-xl font-semibold mb-2">December</h3>
-                <div className="weekday-row text-xs text-slate-500 mb-2">
-                  {WEEKDAYS.map(w => <div key={w} className="text-center">{w}</div>)}
-                </div>
-                <div className="month-grid">
-                  {decCells.map((d, i) => <div key={i}>{dayCell(d)}</div>)}
-                </div>
-              </Card>
-            </div>
+  .questionCard::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(700px 220px at 50% -40px, rgba(240,211,122,0.12), transparent 60%),
+      radial-gradient(700px 220px at 50% 120%, rgba(80,140,255,0.10), transparent 62%);
+    pointer-events: none;
+  }
 
-            <div className="space-y-6">
-              <Leaderboard leaderboard={leaderboard} />
-            </div>
-          </div>
-        );
-      }
+  .questionMeta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; position: relative; z-index: 1; }
 
-      const Card = ({ children }) => <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">{children}</div>;
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.20);
+    color: var(--muted);
+    font-weight: 900;
+  }
 
-      const Stat = ({ label, value, sub }) => (
-        <div className="bg-slate-50 rounded-xl p-4">
-          <div className="text-xs text-slate-600">{label}</div>
-          <div className="text-2xl font-semibold">{value}</div>
-          <div className="text-xs text-slate-600">{sub}</div>
-        </div>
-      );
+  .pill.money { color: var(--gold); border-color: rgba(240,211,122,0.45); }
 
-      const Leaderboard = ({ leaderboard }) => (
-        <Card>
-          <h3 className="text-xl font-semibold mb-3 text-center">Leaderboard</h3>
-          <div className="space-y-2">
-            {leaderboard.map(r => (
-              <div key={r.name} className="flex justify-between text-sm py-2 border-b border-slate-100">
-                <div className="font-semibold">{r.name}</div>
-                <div>{r.sum}/{r.goal} ({r.pct}%)</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      );
+  .questionText {
+    font-size: 21px;
+    font-weight: 900;
+    line-height: 1.25;
+    margin: 8px 0 14px 0;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
 
-      // ================== MODAL MET SLIDER ==================
-      function MinutesModal({ dateYMD, initialValue, onCancel, onSave }) {
-        const [val, setVal] = React.useState(Number.isFinite(initialValue) ? initialValue : 0);
-        const d = fromYMD(dateYMD);
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6">
-              <div className="text-center">
-                <h4 className="text-xl font-semibold">Minuten loggen</h4>
-                <p className="text-sm text-slate-600 mt-1">{d.toLocaleDateString("nl-NL",{ weekday:"long", day:"2-digit", month:"long" })}</p>
-              </div>
-              <div className="mt-6">
-                <input
-                  type="range"
-                  min="0"
-                  max="180"
-                  step="1"
-                  value={val}
-                  onChange={e => setVal(parseInt(e.target.value, 10) || 0)}
-                  className="w-full"
-                />
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className="w-24 border rounded-lg px-3 py-2 text-center"
-                    value={String(val)}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D+/g, "").slice(0,4);
-                      setVal(v === "" ? 0 : Math.min(180, parseInt(v,10)));
-                    }}
-                    onBlur={() => setVal(prev => Math.min(180, Math.max(0, prev)))}
-                  />
-                  <span className="text-sm text-slate-600">minuten</span>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-2">
-                <button className="px-4 py-2 rounded-xl border" onClick={onCancel}>Annuleren</button>
-                <button className="px-4 py-2 rounded-xl bg-slate-900 text-white" onClick={() => onSave(val)}>Opslaan</button>
-              </div>
-            </div>
-          </div>
-        );
-      }
+  .answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
 
-      // ================ MOUNT ================
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(<App />);
-    </script>
-  </body>
-</html>
+  .answerBtn {
+    text-align: left;
+    padding: 12px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.18));
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+  }
+
+  .answerBtn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(240,211,122,0.10), transparent);
+    transform: translateX(-40%);
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+  }
+
+  .answerBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
+  .answerBtn:hover::before { opacity: 1; }
+
+  .answerBtn.selected {
+    border-color: rgba(240,211,122,0.60);
+    box-shadow: 0 16px 44px rgba(240,211,122,0.12);
+  }
+
+  .answerBtn.correct {
+    border-color: rgba(43,154,90,0.70);
+    background: linear-gradient(180deg, rgba(43,154,90,0.18), rgba(0,0,0,0.16));
+  }
+
+  .answerBtn.wrong {
+    border-color: rgba(198,59,59,0.80);
+    background: linear-gradient(180deg, rgba(198,59,59,0.18), rgba(0,0,0,0.16));
+  }
+
+  .actionRow { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
+
+  .message { margin-top: 12px; color: var(--muted); min-height: 22px; position: relative; z-index: 1; }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.74);
+    z-index: 50;
+    padding: 18px;
+  }
+  .overlay.active { display: flex; }
+
+  .overlayCard {
+    width: min(600px, 94vw);
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(8, 14, 38, 0.92);
+    box-shadow: var(--shadow2);
+  }
+
+  .overlayTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .overlayTitle { font-weight: 900; color: var(--gold); }
+  .overlayClose {
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-weight: 900;
+  }
+  .overlayClose:hover { border-color: rgba(240, 211, 122, 0.45); }
+
+  .overlayImg { display: block; width: 100%; height: auto; }
+  .overlayHint { padding: 10px 12px 12px 12px; color: var(--muted); font-size: 13px; }
+
+  .footer {
+    padding: 10px 18px 16px 18px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 920px) {
+    .shell { grid-template-columns: 1fr; }
+    .answers { grid-template-columns: 1fr; }
+    .stat { min-width: 140px; }
+  }
+</style>
