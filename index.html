@@ -1,129 +1,1197 @@
 <!doctype html>
 <html lang="nl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weekend Millionairs kerst editie</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weekend Millionairs, kerst editie</title>
 
-<style>
-html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Arial;background:radial-gradient(circle at top,#101a40,#030616);color:#eef3ff}
-.screen{display:none}
-.screen.active{display:block}
-button{cursor:pointer;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:#111833;color:#eef3ff;font-weight:700;padding:10px 14px}
-button.primary{background:linear-gradient(#f0d37a,#b98b2a);color:#0a0f2b}
-button:disabled{opacity:.5}
-.top{display:flex;justify-content:space-between;padding:14px}
-.panel{background:rgba(10,18,48,.85);border-radius:18px;padding:14px;margin:14px}
-.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.answer{padding:12px;border-radius:999px;border:1px solid rgba(255,255,255,.2)}
-.answer.correct{border-color:#2b9a5a}
-.answer.wrong{border-color:#c63b3b}
-.lifelines{display:flex;gap:10px;margin-bottom:10px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center}
-.overlay.active{display:flex}
-.overlay img{max-width:90vw;border-radius:18px}
-</style>
-</head>
+    <style>
+      :root {
+        --bg0: #03040c;
+        --bg1: #050b22;
+        --bg2: #08133a;
 
-<body>
+        --panel: rgba(10, 18, 48, 0.72);
+        --panel2: rgba(8, 14, 38, 0.88);
 
-<div class="top">
-  <div>Weekend Millionairs kerst editie</div>
-  <div id="progress">0 / 15</div>
-</div>
+        --gold: #f0d37a;
+        --gold2: #b98b2a;
 
-<div id="start" class="screen active panel">
-  <h2>Kies taal</h2>
-  <button onclick="setLang('nl')">Nederlands</button>
-  <button onclick="setLang('en')">English</button>
-  <br><br>
-  <button class="primary" onclick="startGame()">Start</button>
-</div>
+        --text: #eef3ff;
+        --muted: rgba(238, 243, 255, 0.72);
 
-<div id="game" class="screen panel">
-  <div class="lifelines">
-    <button onclick="use5050()">50 50</button>
-    <button onclick="askHenk()">Vraag Henk om hulp</button>
-  </div>
-  <h3 id="question"></h3>
-  <div class="answers" id="answers"></div>
-  <br>
-  <button class="primary" onclick="finalAnswer()">Final answer</button>
-</div>
+        --red: #c63b3b;
+        --green: #2b9a5a;
 
-<div id="end" class="screen panel">
-  <h2 id="endText"></h2>
-  <button class="primary" onclick="location.reload()">Opnieuw spelen</button>
-</div>
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+        --radius: 18px;
+      }
 
-<div id="henk" class="overlay" onclick="closeHenk()">
-  <div>
-    <img src="henk.jpg">
-    <p id="henkText"></p>
-  </div>
-</div>
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
 
-<script>
-const questions=[
-{q:{nl:"Wat is het Duitse woord voor kerst",en:"What is the German word for Christmas"},a:["Kerstag","Weihnachten","Christfest","Heiligabend"],c:1},
-{q:{nl:"Welke speler speelde voor Heerenveen Willem II NEC Twente Sparta en Arminia Bielefeld Romano",en:"Which player played for Heerenveen Willem II NEC Twente Sparta and Arminia Bielefeld Romano"},a:["Postema","Obodai","Denneboom","van Wolfswinkel"],c:2},
-{q:{nl:"In welke film wordt Kevin alleen thuis gelaten tijdens kerst",en:"In which film is Kevin left home alone at Christmas"},a:["Die Hard","Love Actually","Home Alone","The Santa Clause"],c:2},
-{q:{nl:"Wie zingt All I Want for Christmas Is You",en:"Who sings All I Want for Christmas Is You"},a:["Whitney Houston","Celine Dion","Ariana Grande","Mariah Carey"],c:3},
-{q:{nl:"In welke Duitse provincie ligt Baden Württemberg",en:"In which German state is Baden Württemberg located"},a:["Beieren","Baden Württemberg","Noordrijn Westfalen","Saksen"],c:1},
-{q:{nl:"Wie zingt Feliz Navidad",en:"Who sings Feliz Navidad"},a:["Ricky Martin","Julio Iglesias","Jose Feliciano","Santana"],c:2},
-{q:{nl:"Hoe zeg je gelukkig nieuwjaar in het Portugees",en:"How do you say happy new year in Portuguese"},a:["Feliz Natal","Bom Ano","Feliz Ano Novo","Boa Festa"],c:2},
-{q:{nl:"Wat is het wereldrecord 100 meter mannen",en:"What is the men's 100m world record"},a:["9.58","9.63","9.69","9.72"],c:0},
-{q:{nl:"Maak de Big Five compleet leeuw luipaard olifant neushoorn en",en:"Complete the Big Five lion leopard elephant rhino and"},a:["Buffel","Giraffe","Nijlpaard","Jachtluipaard"],c:0},
-{q:{nl:"Wie is Ajax topscorer aller tijden",en:"Who is Ajax all time top scorer"},a:["Van Basten","Bergkamp","Huntelaar","Piet van Reenen"],c:3},
-{q:{nl:"Wie zijn de Magnificent 7 Apple Microsoft Alphabet Tesla Amazon en",en:"Who are the Magnificent 7 Apple Microsoft Alphabet Tesla Amazon and"},a:["Meta Nvidia","Meta Netflix","Nvidia Netflix","Intel Meta"],c:0},
-{q:{nl:"Wat is de hoofdstad van Christmas Island",en:"What is the capital of Christmas Island"},a:["West Island","Drumsite","Silver City","Flying Fish Cove"],c:3},
-{q:{nl:"Wat is Spaans voor ui",en:"What is Spanish for onion"},a:["Ajo","Cebolla","Pimiento","Tomate"],c:1},
-{q:{nl:"In welk jaar verscheen de Coca Cola kersttruck",en:"In what year did the Coca Cola Christmas truck first appear"},a:["1985","1990","1995","2000"],c:2},
-{q:{nl:"Welk huisnummer heeft de familie McCallister",en:"What house number do the McCallisters live at"},a:["645","671","698","715"],c:1}
-];
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: var(--text);
+        overflow-x: hidden;
+        background:
+          radial-gradient(1100px 700px at 50% -10%, rgba(240, 211, 122, 0.10) 0%, transparent 60%),
+          radial-gradient(900px 700px at 20% 15%, rgba(80, 140, 255, 0.18) 0%, transparent 55%),
+          radial-gradient(900px 700px at 80% 20%, rgba(190, 70, 160, 0.14) 0%, transparent 60%),
+          linear-gradient(160deg, var(--bg0), var(--bg1), var(--bg2));
+      }
 
-let lang="nl",i=0,selected=null;
+      .snow {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(circle at 20% 30%, rgba(255,255,255,0.40) 0 1px, transparent 2px),
+          radial-gradient(circle at 60% 20%, rgba(255,255,255,0.32) 0 1px, transparent 2px),
+          radial-gradient(circle at 80% 60%, rgba(255,255,255,0.22) 0 1px, transparent 2px);
+        background-size: 260px 260px, 340px 340px, 420px 420px;
+        animation: snowMove 18s linear infinite;
+        opacity: 0.45;
+      }
 
-function setLang(l){lang=l}
-function startGame(){show("game");render()}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active")}
-function render(){
-document.getElementById("progress").innerText=(i+1)+" / 15";
-document.getElementById("question").innerText=questions[i].q[lang];
-const a=document.getElementById("answers");a.innerHTML="";
-questions[i].a.forEach((t,n)=>{
-const b=document.createElement("div");b.className="answer";b.innerText=String.fromCharCode(65+n)+". "+t;
-b.onclick=()=>{selected=n;document.querySelectorAll(".answer").forEach(x=>x.style.borderColor="");b.style.borderColor="#f0d37a"};
-a.appendChild(b);
-});
-}
-function finalAnswer(){
-if(selected===null)return;
-document.querySelectorAll(".answer").forEach((b,n)=>{
-if(n===questions[i].c)b.classList.add("correct");
-else if(n===selected)b.classList.add("wrong");
-});
-setTimeout(()=>{i++;if(i>=15)end();else{selected=null;render()}},1200);
-}
-function end(){show("end");document.getElementById("endText").innerText="Einde van het spel"}
-function use5050(){
-const q=questions[i];
-let wrong=[0,1,2,3].filter(n=>n!==q.c);
-wrong.splice(Math.floor(Math.random()*wrong.length),1);
-document.querySelectorAll(".answer").forEach((b,n)=>{if(wrong.includes(n)){b.style.opacity=.3;b.onclick=null}});
-}
-function askHenk(){
-document.getElementById("henk").classList.add("active");
-const h=document.getElementById("henkText");
-if(i<8){
-h.innerText=(lang==="nl"?"Henk zegt het antwoord is ":"Henk says the answer is ")+questions[i].a[questions[i].c];
-}else{
-h.innerText=lang==="nl"?"Ik ben maar een simpele Feyenoorder ik weet het ook niet":"I am just a simple Feyenoord supporter I do not know either";
-}
-setTimeout(closeHenk,15000);
-}
-function closeHenk(){document.getElementById("henk").classList.remove("active")}
-</script>
+      @keyframes snowMove {
+        from { transform: translateY(-40px); }
+        to { transform: translateY(140px); }
+      }
 
-</body>
+      .topBar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 18px;
+        gap: 16px;
+      }
+
+      .brand { display: flex; align-items: center; gap: 12px; }
+
+      .badge {
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        color: #0a0f2b;
+        background: radial-gradient(circle at 30% 30%, #fff3c9, var(--gold));
+        box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        position: relative;
+      }
+
+      .badge::after {
+        content: "";
+        position: absolute;
+        inset: -10px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(240,211,122,0.18), transparent 62%);
+        filter: blur(2px);
+        opacity: 0.85;
+        pointer-events: none;
+      }
+
+      .brandTitle { font-weight: 900; letter-spacing: 0.2px; }
+      .brandSub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+      .stats { display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+      .stat {
+        background: rgba(0,0,0,0.20);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 10px 12px;
+        min-width: 160px;
+        box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+        backdrop-filter: blur(10px);
+      }
+      .statLabel { font-size: 12px; color: var(--muted); letter-spacing: 0.2px; }
+      .statValue { margin-top: 4px; font-weight: 900; }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 330px 1fr;
+        gap: 16px;
+        padding: 0 18px 18px 18px;
+      }
+
+      .ladderPanel, .gamePanel {
+        background: var(--panel);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ladderPanel::before,
+      .gamePanel::before {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        background: linear-gradient(135deg, rgba(240,211,122,0.10), transparent 35%, rgba(90,160,255,0.08), transparent 70%, rgba(240,211,122,0.10));
+        opacity: 0.9;
+        pointer-events: none;
+      }
+
+      .ladderPanel { padding: 14px; }
+      .panelTitle { font-weight: 900; margin-bottom: 10px; color: var(--gold); letter-spacing: 0.3px; }
+
+      .ladder {
+        margin: 0;
+        padding-left: 22px;
+        display: grid;
+        gap: 7px;
+      }
+
+      .ladder li {
+        list-style: decimal;
+        padding: 9px 10px;
+        border-radius: 14px;
+        background: rgba(0,0,0,0.22);
+        border: 1px solid rgba(255,255,255,0.10);
+        font-weight: 900;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        position: relative;
+      }
+
+      .ladder li.safe { border-color: rgba(43, 154, 90, 0.55); }
+
+      .ladder li.active {
+        border-color: rgba(240,211,122,0.55);
+        background: rgba(240,211,122,0.12);
+        box-shadow: 0 10px 30px rgba(240,211,122,0.12);
+      }
+
+      .ladder li.active::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: -6px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(240,211,122,0.75), transparent);
+      }
+
+      .safetyNote { margin-top: 12px; color: var(--muted); font-size: 12px; }
+
+      .gamePanel { padding: 16px; min-height: 560px; }
+
+      .screen { display: none; position: relative; z-index: 1; }
+      .screen.active { display: block; }
+
+      .heroTitle { margin: 8px 0 10px 0; font-size: 32px; font-weight: 900; letter-spacing: 0.2px; }
+      .heroText { margin: 0 0 14px 0; color: var(--muted); max-width: 70ch; }
+
+      .startRow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+      .btn {
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.22);
+        color: var(--text);
+        padding: 11px 14px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+        backdrop-filter: blur(10px);
+      }
+
+      .btn:hover { border-color: rgba(240, 211, 122, 0.45); }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+      .btn.primary {
+        background: linear-gradient(180deg, rgba(240,211,122,0.26), rgba(185,139,42,0.16));
+        border-color: rgba(240, 211, 122, 0.55);
+      }
+
+      .btn.danger {
+        background: linear-gradient(180deg, rgba(198,59,59,0.22), rgba(198,59,59,0.10));
+        border-color: rgba(198, 59, 59, 0.55);
+      }
+
+      .rules {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(0,0,0,0.24);
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 14px 44px rgba(0,0,0,0.35);
+      }
+
+      .rules.hidden { display: none; }
+      .rulesTitle { font-weight: 900; color: var(--gold); margin-bottom: 8px; }
+      .rulesList { margin: 0; padding-left: 18px; color: var(--muted); }
+
+      .langRow { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 6px 0; }
+
+      .flagBtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: 16px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.22);
+        cursor: pointer;
+        font-weight: 900;
+        color: var(--text);
+        box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+      }
+
+      .flagBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
+
+      .flagIcon {
+        width: 28px;
+        height: 18px;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.18);
+      }
+
+      .lifelines { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+
+      .lifeBtn {
+        border-radius: 999px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.22);
+        color: var(--text);
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+      }
+
+      .lifeBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
+      .lifeBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+      .questionCard {
+        padding: 14px;
+        border-radius: var(--radius);
+        background: var(--panel2);
+        border: 1px solid rgba(255,255,255,0.14);
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .questionCard::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(700px 220px at 50% -40px, rgba(240,211,122,0.12), transparent 60%),
+          radial-gradient(700px 220px at 50% 120%, rgba(80,140,255,0.10), transparent 62%);
+        pointer-events: none;
+      }
+
+      .questionMeta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; position: relative; z-index: 1; flex-wrap: wrap; }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.20);
+        color: var(--muted);
+        font-weight: 900;
+      }
+
+      .pill.money { color: var(--gold); border-color: rgba(240,211,122,0.45); }
+
+      .questionText {
+        font-size: 21px;
+        font-weight: 900;
+        line-height: 1.25;
+        margin: 8px 0 14px 0;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      }
+
+      .answers {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .answerBtn {
+        text-align: left;
+        padding: 12px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.18));
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 34px rgba(0,0,0,0.35);
+      }
+
+      .answerBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
+
+      .answerBtn.selected {
+        border-color: rgba(240,211,122,0.60);
+        box-shadow: 0 16px 44px rgba(240,211,122,0.12);
+      }
+
+      .answerBtn.correct {
+        border-color: rgba(43,154,90,0.70);
+        background: linear-gradient(180deg, rgba(43,154,90,0.18), rgba(0,0,0,0.16));
+      }
+
+      .answerBtn.wrong {
+        border-color: rgba(198,59,59,0.80);
+        background: linear-gradient(180deg, rgba(198,59,59,0.18), rgba(0,0,0,0.16));
+      }
+
+      .answerBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .actionRow { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
+      .message { margin-top: 12px; color: var(--muted); min-height: 22px; position: relative; z-index: 1; }
+
+      .endTitle { margin: 6px 0 8px 0; font-size: 26px; font-weight: 900; }
+      .endText { margin: 0; color: var(--muted); max-width: 70ch; }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.74);
+        z-index: 50;
+        padding: 18px;
+      }
+      .overlay.active { display: flex; }
+
+      .overlayCard {
+        width: min(720px, 94vw);
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(8, 14, 38, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .overlayTop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+      }
+
+      .overlayTitle { font-weight: 900; color: var(--gold); }
+
+      .overlayClose {
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.22);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .overlayClose:hover { border-color: rgba(240, 211, 122, 0.45); }
+
+      .overlayImg { display: block; width: 100%; height: auto; }
+      .overlayHint { padding: 10px 12px 12px 12px; color: var(--muted); font-size: 13px; }
+
+      .footer {
+        padding: 10px 18px 16px 18px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      @media (max-width: 920px) {
+        .shell { grid-template-columns: 1fr; }
+        .answers { grid-template-columns: 1fr; }
+        .stat { min-width: 140px; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="snow" aria-hidden="true"></div>
+
+    <header class="topBar">
+      <div class="brand">
+        <div class="badge">W</div>
+        <div>
+          <div class="brandTitle">Weekend Millionairs</div>
+          <div class="brandSub" id="subTitle">kerst editie</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="statLabel" id="lblWinnings">Huidig bedrag</div>
+          <div id="currentWinnings" class="statValue">€ 0</div>
+        </div>
+        <div class="stat">
+          <div class="statLabel" id="lblQuestion">Vraag</div>
+          <div id="questionIndex" class="statValue">0 / 15</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <aside class="ladderPanel" aria-label="Geld ladder">
+        <div class="panelTitle" id="ladderTitle">Geld ladder</div>
+        <ol id="ladder" class="ladder"></ol>
+        <div class="safetyNote" id="safetyNote">Veiligheden, vraag 5, vraag 10</div>
+      </aside>
+
+      <section class="gamePanel">
+        <div id="screenStart" class="screen active">
+          <h1 class="heroTitle" id="startTitle">Weekend Millionairs, kerst editie</h1>
+          <p class="heroText" id="startText">
+            Kies je taal, start de quiz, 15 vragen, 50 50, vraag Henk om hulp, en ga voor het miljoen.
+          </p>
+
+          <div class="rules" id="langBox">
+            <div class="rulesTitle" id="langTitle">Welke taal wil je spelen</div>
+            <div class="langRow">
+              <button id="langNL" class="flagBtn" type="button" aria-label="Nederlands">
+                <span class="flagIcon" aria-hidden="true">
+                  <svg viewBox="0 0 28 18" width="28" height="18" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="6" y="0" fill="#AE1C28"></rect>
+                    <rect width="28" height="6" y="6" fill="#FFFFFF"></rect>
+                    <rect width="28" height="6" y="12" fill="#21468B"></rect>
+                  </svg>
+                </span>
+                Nederlands
+              </button>
+
+              <button id="langEN" class="flagBtn" type="button" aria-label="English">
+                <span class="flagIcon" aria-hidden="true">
+                  <svg viewBox="0 0 28 18" width="28" height="18" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="18" fill="#012169"></rect>
+                    <path d="M0,0 L28,18 M28,0 L0,18" stroke="#FFFFFF" stroke-width="4"></path>
+                    <path d="M0,0 L28,18 M28,0 L0,18" stroke="#C8102E" stroke-width="2"></path>
+                    <path d="M14,0 V18 M0,9 H28" stroke="#FFFFFF" stroke-width="6"></path>
+                    <path d="M14,0 V18 M0,9 H28" stroke="#C8102E" stroke-width="3"></path>
+                  </svg>
+                </span>
+                English
+              </button>
+            </div>
+          </div>
+
+          <div class="startRow">
+            <button id="startBtn" class="btn primary" disabled type="button">Start</button>
+            <button id="howBtn" class="btn" type="button">Spelregels</button>
+          </div>
+
+          <div id="rules" class="rules hidden">
+            <div class="rulesTitle" id="rulesTitle">Spelregels</div>
+            <ul class="rulesList" id="rulesList">
+              <li>Je speelt 15 vragen, oplopend in waarde</li>
+              <li>Je kiest één antwoord, daarna is het definitief</li>
+              <li>Jokers, 50 50, vraag Henk om hulp</li>
+              <li>Veilige bedragen op vraag 5, vraag 10</li>
+              <li>Bij een fout antwoord lig je eruit</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="screenGame" class="screen">
+          <div class="lifelines">
+            <button id="life5050" class="lifeBtn" type="button">50 50</button>
+            <button id="lifeHenk" class="lifeBtn" type="button">Vraag Henk om hulp</button>
+          </div>
+
+          <div class="questionCard">
+            <div class="questionMeta">
+              <span id="categoryPill" class="pill">Categorie</span>
+              <span id="moneyPill" class="pill money">€ 0</span>
+            </div>
+
+            <div id="questionText" class="questionText">Vraag tekst</div>
+            <div id="answers" class="answers"></div>
+
+            <div class="actionRow">
+              <button id="finalBtn" class="btn primary" type="button" disabled>Final answer</button>
+              <button id="walkBtn" class="btn danger" type="button">Stoppen</button>
+            </div>
+
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div id="screenEnd" class="screen">
+          <h2 id="endTitle" class="endTitle">Einde</h2>
+          <p id="endText" class="endText"></p>
+          <div class="startRow">
+            <button id="restartBtn" class="btn primary" type="button">Opnieuw spelen</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="henkOverlay" class="overlay" aria-hidden="true">
+      <div class="overlayCard" role="dialog" aria-modal="true" aria-label="Henk">
+        <div class="overlayTop">
+          <div id="henkTitle" class="overlayTitle">Henk</div>
+          <button id="henkClose" class="overlayClose" type="button">Sluit</button>
+        </div>
+        <div>
+          <img id="henkImg" class="overlayImg" src="henk.jpg" alt="Henk" />
+        </div>
+        <div id="henkHint" class="overlayHint"></div>
+      </div>
+    </div>
+
+    <div id="millionOverlay" class="overlay" aria-hidden="true">
+      <div class="overlayCard" role="dialog" aria-modal="true" aria-label="Miljoen">
+        <div class="overlayTop">
+          <div id="millionTitle" class="overlayTitle">Miljoen</div>
+          <button id="millionClose" class="overlayClose" type="button">Sluit</button>
+        </div>
+        <div>
+          <img id="millionImg" class="overlayImg" src="miljoen.jpg" alt="Miljoen" />
+        </div>
+        <div id="millionHint" class="overlayHint"></div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div id="footerLeft">Tip, fullscreen voelt als studio</div>
+      <div id="footerRight">Weekend Millionairs kerst editie</div>
+    </footer>
+
+    <script>
+      const quizData = {
+        moneyLadder: [
+          500, 1000, 2000, 3000, 5000,
+          10000, 20000, 40000, 80000, 125000,
+          250000, 500000, 750000, 900000, 1000000
+        ],
+        safeSteps: [5, 10],
+        questions: [
+          {
+            id: 1,
+            category: { nl: "Taal", en: "Language" },
+            text: { nl: "Wat is het Duitse woord voor kerst", en: "What is the German word for Christmas" },
+            answers: { nl: ["Kerstag", "Weihnachten", "Christfest", "Heiligabend"], en: ["Kerstag", "Weihnachten", "Christfest", "Heiligabend"] },
+            correctIndex: 1
+          },
+          {
+            id: 2,
+            category: { nl: "Sport", en: "Sports" },
+            text: { nl: "Welke speler speelde voor Heerenveen, Willem II, NEC, FC Twente, Sparta en Arminia Bielefeld, Romano …", en: "Which player played for Heerenveen, Willem II, NEC, FC Twente, Sparta and Arminia Bielefeld, Romano …" },
+            answers: { nl: ["Postema", "Obodai", "Denneboom", "van Wolfswinkel"], en: ["Postema", "Obodai", "Denneboom", "van Wolfswinkel"] },
+            correctIndex: 2
+          },
+          {
+            id: 3,
+            category: { nl: "Film", en: "Film" },
+            text: { nl: "In welke film wordt Kevin per ongeluk alleen thuis gelaten tijdens kerst", en: "In which film is Kevin accidentally left home alone at Christmas" },
+            answers: { nl: ["Die Hard", "Love Actually", "Home Alone", "The Santa Clause"], en: ["Die Hard", "Love Actually", "Home Alone", "The Santa Clause"] },
+            correctIndex: 2
+          },
+          {
+            id: 4,
+            category: { nl: "Muziek", en: "Music" },
+            text: { nl: "Wie zingt het kerstnummer All I Want for Christmas Is You", en: "Who sings the Christmas song All I Want for Christmas Is You" },
+            answers: { nl: ["Whitney Houston", "Céline Dion", "Ariana Grande", "Mariah Carey"], en: ["Whitney Houston", "Celine Dion", "Ariana Grande", "Mariah Carey"] },
+            correctIndex: 3
+          },
+          {
+            id: 5,
+            category: { nl: "Topo", en: "Geography" },
+            text: { nl: "In welke Duitse deelstaat ligt Stuttgart", en: "In which German state is Stuttgart located" },
+            answers: { nl: ["Beieren", "Baden Württemberg", "Noordrijn Westfalen", "Hessen"], en: ["Bavaria", "Baden Württemberg", "North Rhine Westphalia", "Hesse"] },
+            correctIndex: 1
+          },
+          {
+            id: 6,
+            category: { nl: "Muziek", en: "Music" },
+            text: { nl: "Wie zingt het wereldberoemde kerstnummer Feliz Navidad", en: "Who sings the famous Christmas song Feliz Navidad" },
+            answers: { nl: ["Ricky Martin", "Julio Iglesias", "José Feliciano", "Santana"], en: ["Ricky Martin", "Julio Iglesias", "Jose Feliciano", "Santana"] },
+            correctIndex: 2
+          },
+          {
+            id: 7,
+            category: { nl: "Taal", en: "Language" },
+            text: { nl: "Hoe zeg je gelukkig nieuw jaar in het Portugees", en: "How do you say Happy New Year in Portuguese" },
+            answers: { nl: ["Feliz Natal", "Bom Ano", "Feliz Ano Novo", "Boa Festa"], en: ["Feliz Natal", "Bom Ano", "Feliz Ano Novo", "Boa Festa"] },
+            correctIndex: 2
+          },
+          {
+            id: 8,
+            category: { nl: "Sport", en: "Sports" },
+            text: { nl: "Wat is het wereldrecord op de 100 meter sprint voor mannen", en: "What is the men's 100 meter sprint world record" },
+            answers: { nl: ["9,58 seconden", "9,63 seconden", "9,69 seconden", "9,72 seconden"], en: ["9.58 seconds", "9.63 seconds", "9.69 seconds", "9.72 seconds"] },
+            correctIndex: 0
+          },
+          {
+            id: 9,
+            category: { nl: "Zuid Afrika", en: "South Africa" },
+            text: { nl: "Maak de Big Five compleet, leeuw, luipaard, olifant, neushoorn en", en: "Complete the Big Five, lion, leopard, elephant, rhino and" },
+            answers: { nl: ["Buffel", "Giraffe", "Nijlpaard", "Jachtluipaard"], en: ["Buffalo", "Giraffe", "Hippopotamus", "Cheetah"] },
+            correctIndex: 0
+          },
+          {
+            id: 10,
+            category: { nl: "Sport", en: "Sports" },
+            text: { nl: "Wie is de topscorer aller tijden van AFC Ajax", en: "Who is AFC Ajax all time top goalscorer" },
+            answers: { nl: ["Marco van Basten", "Dennis Bergkamp", "Klaas Jan Huntelaar", "Piet van Reenen"], en: ["Marco van Basten", "Dennis Bergkamp", "Klaas Jan Huntelaar", "Piet van Reenen"] },
+            correctIndex: 3
+          },
+          {
+            id: 11,
+            category: { nl: "Beleggen", en: "Investing" },
+            text: { nl: "Wie zijn de Magnificent 7 in beleggen, Apple, Microsoft, Alphabet, Tesla, Amazon en", en: "Who are the Magnificent 7 in investing, Apple, Microsoft, Alphabet, Tesla, Amazon and" },
+            answers: { nl: ["Meta en Nvidia", "Meta en Netflix", "Nvidia en Netflix", "Intel en Meta"], en: ["Meta and Nvidia", "Meta and Netflix", "Nvidia and Netflix", "Intel and Meta"] },
+            correctIndex: 0
+          },
+          {
+            id: 12,
+            category: { nl: "Topo", en: "Geography" },
+            text: { nl: "Wat is de hoofdstad van Christmas Island", en: "What is the capital of Christmas Island" },
+            answers: { nl: ["West Island", "Drumsite", "Silver City", "Flying Fish Cove"], en: ["West Island", "Drumsite", "Silver City", "Flying Fish Cove"] },
+            correctIndex: 3
+          },
+          {
+            id: 13,
+            category: { nl: "Taal", en: "Language" },
+            text: { nl: "Wat is het Spaanse woord voor ui", en: "What is the Spanish word for onion" },
+            answers: { nl: ["Ajo", "Cebolla", "Pimiento", "Tomate"], en: ["Ajo", "Cebolla", "Pimiento", "Tomate"] },
+            correctIndex: 1
+          },
+          {
+            id: 14,
+            category: { nl: "Kerst", en: "Christmas" },
+            text: { nl: "In welk jaar verscheen de Coca Cola kersttruck voor het eerst op televisie", en: "In what year did the Coca Cola Christmas truck first appear on television" },
+            answers: { nl: ["1985", "1990", "1995", "2000"], en: ["1985", "1990", "1995", "2000"] },
+            correctIndex: 2
+          },
+          {
+            id: 15,
+            category: { nl: "Film", en: "Film" },
+            text: { nl: "In de film Home Alone, welk huisnummer heeft het huis van de familie McCallister", en: "In Home Alone, what house number does the McCallister family live at" },
+            answers: { nl: ["645", "671", "698", "715"], en: ["645", "671", "698", "715"] },
+            correctIndex: 1
+          }
+        ]
+      };
+
+      const ui = {
+        start: document.getElementById("screenStart"),
+        game: document.getElementById("screenGame"),
+        end: document.getElementById("screenEnd"),
+        rules: document.getElementById("rules"),
+
+        subTitle: document.getElementById("subTitle"),
+        lblWinnings: document.getElementById("lblWinnings"),
+        lblQuestion: document.getElementById("lblQuestion"),
+        ladderTitle: document.getElementById("ladderTitle"),
+        safetyNote: document.getElementById("safetyNote"),
+
+        startTitle: document.getElementById("startTitle"),
+        startText: document.getElementById("startText"),
+        langTitle: document.getElementById("langTitle"),
+
+        langNL: document.getElementById("langNL"),
+        langEN: document.getElementById("langEN"),
+
+        startBtn: document.getElementById("startBtn"),
+        howBtn: document.getElementById("howBtn"),
+        restartBtn: document.getElementById("restartBtn"),
+
+        ladder: document.getElementById("ladder"),
+        currentWinnings: document.getElementById("currentWinnings"),
+        questionIndex: document.getElementById("questionIndex"),
+
+        categoryPill: document.getElementById("categoryPill"),
+        moneyPill: document.getElementById("moneyPill"),
+        questionText: document.getElementById("questionText"),
+        answers: document.getElementById("answers"),
+
+        finalBtn: document.getElementById("finalBtn"),
+        walkBtn: document.getElementById("walkBtn"),
+        message: document.getElementById("message"),
+
+        endTitle: document.getElementById("endTitle"),
+        endText: document.getElementById("endText"),
+
+        life5050: document.getElementById("life5050"),
+        lifeHenk: document.getElementById("lifeHenk"),
+
+        henkOverlay: document.getElementById("henkOverlay"),
+        henkClose: document.getElementById("henkClose"),
+        henkTitle: document.getElementById("henkTitle"),
+        henkHint: document.getElementById("henkHint"),
+
+        millionOverlay: document.getElementById("millionOverlay"),
+        millionClose: document.getElementById("millionClose"),
+        millionTitle: document.getElementById("millionTitle"),
+        millionHint: document.getElementById("millionHint")
+      };
+
+      const copy = {
+        nl: {
+          subTitle: "kerst editie",
+          winnings: "Huidig bedrag",
+          question: "Vraag",
+          ladder: "Geld ladder",
+          safety: "Veiligheden, vraag 5, vraag 10",
+          startTitle: "Weekend Millionairs, kerst editie",
+          startText: "Kies je taal, start de quiz, 15 vragen, 50 50, vraag Henk om hulp, en ga voor het miljoen.",
+          langTitle: "Welke taal wil je spelen",
+          startBtn: "Start",
+          rulesBtn: "Spelregels",
+          rulesTitle: "Spelregels",
+          rulesItems: [
+            "Je speelt 15 vragen, oplopend in waarde",
+            "Je kiest één antwoord, daarna is het definitief",
+            "Jokers, 50 50, vraag Henk om hulp",
+            "Veilige bedragen op vraag 5, vraag 10",
+            "Bij een fout antwoord lig je eruit"
+          ],
+          final: "Final answer",
+          walk: "Stoppen",
+          picked: "Gekozen. Klik Final answer om te bevestigen.",
+          correct: "Correct. Door naar de volgende vraag.",
+          endWinTitle: "Miljoen",
+          endLoseTitle: "Game over",
+          endWalkTitle: "Je stopt",
+          endWinText: "Je hebt het miljoen gehaald.",
+          endWalkText: "Je stopt. Eindbedrag",
+          endLoseText: "Fout antwoord, je ligt eruit. Eindbedrag",
+          fiftyMsg: "50 50 gebruikt. Twee opties zijn weg.",
+          henkBtn: "Vraag Henk om hulp",
+          henkTitle: "Henk",
+          henkClose: "Sluit",
+          millionTitle: "Miljoen",
+          millionClose: "Sluit",
+          millionHint: "Miljoen moment."
+        },
+        en: {
+          subTitle: "Christmas edition",
+          winnings: "Current winnings",
+          question: "Question",
+          ladder: "Money ladder",
+          safety: "Safe levels, question 5, question 10",
+          startTitle: "Weekend Millionairs, Christmas edition",
+          startText: "Choose your language, start the quiz, 15 questions, 50 50, ask Henk for help, and go for the million.",
+          langTitle: "Which language do you want to play",
+          startBtn: "Start",
+          rulesBtn: "Rules",
+          rulesTitle: "Rules",
+          rulesItems: [
+            "You play 15 questions, increasing in value",
+            "You pick one answer, then it is final",
+            "Lifelines, 50 50, ask Henk for help",
+            "Safe levels at question 5, question 10",
+            "If you get one wrong, you are out"
+          ],
+          final: "Final answer",
+          walk: "Walk away",
+          picked: "Selected. Click Final answer to confirm.",
+          correct: "Correct. Moving to the next question.",
+          endWinTitle: "Million",
+          endLoseTitle: "Game over",
+          endWalkTitle: "You walked away",
+          endWinText: "You won the million.",
+          endWalkText: "You walked away. Final amount",
+          endLoseText: "Wrong answer, you are out. Final amount",
+          fiftyMsg: "50 50 used. Two options are removed.",
+          henkBtn: "Ask Henk for help",
+          henkTitle: "Henk",
+          henkClose: "Close",
+          millionTitle: "Million",
+          millionClose: "Close",
+          millionHint: "Million moment."
+        }
+      };
+
+      const state = {
+        lang: null,
+        index: 0,
+        selectedIndex: null,
+        locked: false,
+        winnings: 0,
+        lifelines: { fifty: true },
+        henkTimer: null
+      };
+
+      function formatEuro(value) {
+        const s = String(value);
+        let out = "";
+        let count = 0;
+        for (let i = s.length - 1; i >= 0; i--) {
+          out = s[i] + out;
+          count++;
+          if (count === 3 && i !== 0) {
+            out = "." + out;
+            count = 0;
+          }
+        }
+        return "€ " + out;
+      }
+
+      function setScreen(name) {
+        ui.start.classList.remove("active");
+        ui.game.classList.remove("active");
+        ui.end.classList.remove("active");
+        if (name === "start") ui.start.classList.add("active");
+        if (name === "game") ui.game.classList.add("active");
+        if (name === "end") ui.end.classList.add("active");
+      }
+
+      function buildLadder() {
+        ui.ladder.innerHTML = "";
+        quizData.moneyLadder.forEach((amount, i) => {
+          const step = i + 1;
+          const li = document.createElement("li");
+          li.dataset.step = String(step);
+
+          const left = document.createElement("span");
+          left.textContent = (state.lang === "en" ? "Q " : "Vraag ") + step;
+
+          const right = document.createElement("span");
+          right.textContent = formatEuro(amount);
+
+          li.appendChild(left);
+          li.appendChild(right);
+
+          if (quizData.safeSteps.includes(step)) li.classList.add("safe");
+          ui.ladder.appendChild(li);
+        });
+      }
+
+      function updateTopStats() {
+        ui.currentWinnings.textContent = formatEuro(state.winnings);
+        ui.questionIndex.textContent = (state.lang ? (state.index + 1) : 0) + " / " + quizData.questions.length;
+      }
+
+      function setLadderActive() {
+        const steps = ui.ladder.querySelectorAll("li");
+        steps.forEach(li => li.classList.remove("active"));
+        const active = ui.ladder.querySelector(`li[data-step="${state.index + 1}"]`);
+        if (active) active.classList.add("active");
+      }
+
+      function applyLanguageUI() {
+        const t = copy[state.lang];
+        document.documentElement.lang = state.lang === "en" ? "en" : "nl";
+
+        ui.subTitle.textContent = t.subTitle;
+        ui.lblWinnings.textContent = t.winnings;
+        ui.lblQuestion.textContent = t.question;
+        ui.ladderTitle.textContent = t.ladder;
+        ui.safetyNote.textContent = t.safety;
+
+        ui.startTitle.textContent = t.startTitle;
+        ui.startText.textContent = t.startText;
+        ui.langTitle.textContent = t.langTitle;
+
+        ui.startBtn.textContent = t.startBtn;
+        ui.howBtn.textContent = t.rulesBtn;
+
+        ui.finalBtn.textContent = t.final;
+        ui.walkBtn.textContent = t.walk;
+
+        ui.lifeHenk.textContent = t.henkBtn;
+        ui.henkTitle.textContent = t.henkTitle;
+        ui.henkClose.textContent = t.henkClose;
+
+        ui.millionTitle.textContent = t.millionTitle;
+        ui.millionClose.textContent = t.millionClose;
+        ui.millionHint.textContent = t.millionHint;
+
+        const rulesTitle = document.getElementById("rulesTitle");
+        const rulesList = document.getElementById("rulesList");
+        rulesTitle.textContent = t.rulesTitle;
+        rulesList.innerHTML = "";
+        t.rulesItems.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          rulesList.appendChild(li);
+        });
+
+        buildLadder();
+        updateTopStats();
+        setLadderActive();
+      }
+
+      function updateLifelinesUi() {
+        ui.life5050.disabled = !state.lifelines.fifty || state.locked;
+        ui.lifeHenk.disabled = state.locked;
+      }
+
+      function renderQuestion() {
+        state.selectedIndex = null;
+        state.locked = false;
+        ui.finalBtn.disabled = true;
+        ui.message.textContent = "";
+
+        const q = quizData.questions[state.index];
+        const amount = quizData.moneyLadder[state.index];
+
+        ui.categoryPill.textContent = q.category[state.lang];
+        ui.moneyPill.textContent = formatEuro(amount);
+        ui.questionText.textContent = q.text[state.lang];
+
+        ui.answers.innerHTML = "";
+        const answers = q.answers[state.lang];
+        answers.forEach((label, i) => {
+          const btn = document.createElement("button");
+          btn.className = "answerBtn";
+          btn.type = "button";
+          btn.textContent = String.fromCharCode(65 + i) + ", " + label;
+          btn.addEventListener("click", () => selectAnswer(i));
+          ui.answers.appendChild(btn);
+        });
+
+        updateTopStats();
+        setLadderActive();
+        updateLifelinesUi();
+      }
+
+      function selectAnswer(i) {
+        if (state.locked) return;
+        state.selectedIndex = i;
+        ui.finalBtn.disabled = false;
+
+        const buttons = ui.answers.querySelectorAll(".answerBtn");
+        buttons.forEach(b => b.classList.remove("selected"));
+        buttons[i].classList.add("selected");
+
+        ui.message.textContent = copy[state.lang].picked;
+      }
+
+      function reveal(correctIndex, chosenIndex) {
+        const buttons = ui.answers.querySelectorAll(".answerBtn");
+        buttons.forEach((b, i) => {
+          b.classList.remove("selected");
+          if (i === correctIndex) b.classList.add("correct");
+          if (chosenIndex !== null && i === chosenIndex && i !== correctIndex) b.classList.add("wrong");
+        });
+      }
+
+      function openMillionOverlay() {
+        ui.millionOverlay.classList.add("active");
+        ui.millionOverlay.setAttribute("aria-hidden", "false");
+      }
+
+      function closeMillionOverlay() {
+        ui.millionOverlay.classList.remove("active");
+        ui.millionOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      function endWin() {
+        setScreen("end");
+        ui.endTitle.textContent = copy[state.lang].endWinTitle;
+        ui.endText.textContent = copy[state.lang].endWinText + " " + formatEuro(state.winnings) + ".";
+        openMillionOverlay();
+      }
+
+      function endLose() {
+        setScreen("end");
+        ui.endTitle.textContent = copy[state.lang].endLoseTitle;
+        ui.endText.textContent = copy[state.lang].endLoseText + " " + formatEuro(state.winnings) + ".";
+      }
+
+      function endWalk() {
+        setScreen("end");
+        ui.endTitle.textContent = copy[state.lang].endWalkTitle;
+        ui.endText.textContent = copy[state.lang].endWalkText + " " + formatEuro(state.winnings) + ".";
+      }
+
+      function handleFinal() {
+        if (state.selectedIndex === null) return;
+        if (state.locked) return;
+
+        state.locked = true;
+        ui.finalBtn.disabled = true;
+
+        const q = quizData.questions[state.index];
+        const correct = q.correctIndex;
+        const chosen = state.selectedIndex;
+
+        reveal(correct, chosen);
+
+        if (chosen === correct) {
+          state.winnings = quizData.moneyLadder[state.index];
+          ui.message.textContent = copy[state.lang].correct;
+          updateTopStats();
+
+          setTimeout(() => {
+            state.index++;
+            if (state.index >= quizData.questions.length) {
+              endWin();
+            } else {
+              renderQuestion();
+            }
+          }, 1200);
+          return;
+        }
+
+        state.winnings = 0;
+        updateTopStats();
+
+        setTimeout(() => {
+          endLose();
+        }, 900);
+      }
+
+      function handleWalkAway() {
+        if (state.locked) return;
+        endWalk();
+      }
+
+      function resetGame() {
+        state.index = 0;
+        state.selectedIndex = null;
+        state.locked = false;
+        state.winnings = 0;
+        state.lifelines = { fifty: true };
+        setScreen("game");
+        renderQuestion();
+      }
+
+      function use5050() {
+        if (!state.lifelines.fifty || state.locked) return;
+        state.lifelines.fifty = false;
+
+        const q = quizData.questions[state.index];
+        const correct = q.correctIndex;
+
+        const wrongIndices = [0, 1, 2, 3].filter(i => i !== correct);
+        const removeA = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+        const remainingWrong = wrongIndices.filter(i => i !== removeA);
+        const removeB = remainingWrong[Math.floor(Math.random() * remainingWrong.length)];
+
+        const buttons = ui.answers.querySelectorAll(".answerBtn");
+        [removeA, removeB].forEach(i => {
+          buttons[i].disabled = true;
+        });
+
+        ui.message.textContent = copy[state.lang].fiftyMsg;
+        updateLifelinesUi();
+      }
+
+      function setHenkHintText() {
+        const qNumber = state.index + 1;
+        const q = quizData.questions[state.index];
+
+        if (qNumber <= 8) {
+          const letters = ["A", "B", "C", "D"];
+          const letter = letters[q.correctIndex];
+          const answerText = q.answers[state.lang][q.correctIndex];
+
+          ui.henkHint.textContent =
+            state.lang === "en"
+              ? "Henk says, the correct answer is " + letter + ", " + answerText + "."
+              : "Henk zegt, het juiste antwoord is " + letter + ", " + answerText + ".";
+          return;
+        }
+
+        ui.henkHint.textContent =
+          state.lang === "en"
+            ? "I am just a simple Feyenoord supporter, I do not know either."
+            : "Ik ben maar een simpele Feyenoorder, ik weet het ook niet.";
+      }
+
+      function showHenkOverlay() {
+        if (state.henkTimer) clearTimeout(state.henkTimer);
+
+        setHenkHintText();
+
+        ui.henkOverlay.classList.add("active");
+        ui.henkOverlay.setAttribute("aria-hidden", "false");
+
+        state.henkTimer = setTimeout(() => {
+          hideHenkOverlay();
+        }, 15000);
+      }
+
+      function hideHenkOverlay() {
+        if (state.henkTimer) {
+          clearTimeout(state.henkTimer);
+          state.henkTimer = null;
+        }
+        ui.henkOverlay.classList.remove("active");
+        ui.henkOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      ui.langNL.addEventListener("click", () => {
+        state.lang = "nl";
+        ui.startBtn.disabled = false;
+        applyLanguageUI();
+      });
+
+      ui.langEN.addEventListener("click", () => {
+        state.lang = "en";
+        ui.startBtn.disabled = false;
+        applyLanguageUI();
+      });
+
+      ui.startBtn.addEventListener("click", () => {
+        if (!state.lang) return;
+        resetGame();
+      });
+
+      ui.howBtn.addEventListener("click", () => {
+        ui.rules.classList.toggle("hidden");
+      });
+
+      ui.finalBtn.addEventListener("click", handleFinal);
+      ui.walkBtn.addEventListener("click", handleWalkAway);
+
+      ui.restartBtn.addEventListener("click", () => {
+        closeMillionOverlay();
+        setScreen("start");
+        ui.rules.classList.add("hidden");
+        state.index = 0;
+        state.winnings = 0;
+        state.lifelines = { fifty: true };
+        updateTopStats();
+        buildLadder();
+        setLadderActive();
+      });
+
+      ui.life5050.addEventListener("click", use5050);
+      ui.lifeHenk.addEventListener("click", showHenkOverlay);
+
+      ui.henkClose.addEventListener("click", hideHenkOverlay);
+      ui.henkOverlay.addEventListener("click", (e) => { if (e.target === ui.henkOverlay) hideHenkOverlay(); });
+
+      ui.millionClose.addEventListener("click", closeMillionOverlay);
+      ui.millionOverlay.addEventListener("click", (e) => { if (e.target === ui.millionOverlay) closeMillionOverlay(); });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          hideHenkOverlay();
+          closeMillionOverlay();
+        }
+      });
+
+      setScreen("start");
+      buildLadder();
+      ui.currentWinnings.textContent = formatEuro(0);
+      ui.questionIndex.textContent = "0 / 15";
+      setLadderActive();
+    </script>
+  </body>
 </html>
