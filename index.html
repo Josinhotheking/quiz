@@ -502,13 +502,7 @@
 
           <div id="rules" class="rules hidden">
             <div class="rulesTitle" id="rulesTitle">Spelregels</div>
-            <ul class="rulesList" id="rulesList">
-              <li>Je speelt 15 vragen, oplopend in waarde</li>
-              <li>Je kiest één antwoord, daarna is het definitief</li>
-              <li>Jokers, 50 50, vraag Henk om hulp</li>
-              <li>Veilige bedragen op vraag 5, vraag 10</li>
-              <li>Bij een fout antwoord lig je eruit</li>
-            </ul>
+            <ul class="rulesList" id="rulesList"></ul>
           </div>
         </div>
 
@@ -553,7 +547,7 @@
           <button id="henkClose" class="overlayClose" type="button">Sluit</button>
         </div>
         <div>
-          <img id="henkImg" class="overlayImg" src="henk.jpg" alt="Henk" />
+          <img class="overlayImg" src="henk.jpg" alt="Henk" />
         </div>
         <div id="henkHint" class="overlayHint"></div>
       </div>
@@ -566,7 +560,7 @@
           <button id="millionClose" class="overlayClose" type="button">Sluit</button>
         </div>
         <div>
-          <img id="millionImg" class="overlayImg" src="miljoen.jpg" alt="Miljoen" />
+          <img class="overlayImg" src="miljoen.jpg" alt="Miljoen" />
         </div>
         <div id="millionHint" class="overlayHint"></div>
       </div>
@@ -989,6 +983,12 @@
         });
       }
 
+      function safeFallback(stepNumber) {
+        if (stepNumber >= 10) return quizData.moneyLadder[9];
+        if (stepNumber >= 5) return quizData.moneyLadder[4];
+        return 0;
+      }
+
       function openMillionOverlay() {
         ui.millionOverlay.classList.add("active");
         ui.millionOverlay.setAttribute("aria-hidden", "false");
@@ -1047,7 +1047,8 @@
           return;
         }
 
-        state.winnings = 0;
+        const stepNumber = state.index + 1;
+        state.winnings = safeFallback(stepNumber);
         updateTopStats();
 
         setTimeout(() => {
