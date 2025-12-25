@@ -1,433 +1,129 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekend Millionairs kerst editie</title>
+
 <style>
-  :root {
-    --bg0: #03040c;
-    --bg1: #050b22;
-    --bg2: #08133a;
-    --panel: rgba(10, 18, 48, 0.72);
-    --panel2: rgba(8, 14, 38, 0.86);
-
-    --gold: #f0d37a;
-    --gold2: #b98b2a;
-
-    --ice: #cfe8ff;
-    --red: #c63b3b;
-    --green: #2b9a5a;
-
-    --text: #eef3ff;
-    --muted: rgba(238, 243, 255, 0.72);
-
-    --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
-    --shadow2: 0 30px 90px rgba(0, 0, 0, 0.65);
-    --radius: 18px;
-
-    --ring: rgba(240, 211, 122, 0.65);
-    --ring2: rgba(240, 211, 122, 0.28);
-  }
-
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-
-  body {
-    margin: 0;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    color: var(--text);
-    overflow-x: hidden;
-
-    background:
-      radial-gradient(1100px 700px at 50% -10%, rgba(240, 211, 122, 0.10) 0%, transparent 60%),
-      radial-gradient(900px 700px at 20% 15%, rgba(80, 140, 255, 0.18) 0%, transparent 55%),
-      radial-gradient(900px 700px at 80% 20%, rgba(190, 70, 160, 0.14) 0%, transparent 60%),
-      linear-gradient(160deg, var(--bg0), var(--bg1), var(--bg2));
-  }
-
-  .snow {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.40) 0 1px, transparent 2px),
-      radial-gradient(circle at 60% 20%, rgba(255,255,255,0.32) 0 1px, transparent 2px),
-      radial-gradient(circle at 80% 60%, rgba(255,255,255,0.22) 0 1px, transparent 2px);
-    background-size: 260px 260px, 340px 340px, 420px 420px;
-    animation: snowMove 18s linear infinite;
-    opacity: 0.45;
-  }
-
-  @keyframes snowMove {
-    from { transform: translateY(-40px); }
-    to { transform: translateY(140px); }
-  }
-
-  .topBar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 18px;
-    gap: 16px;
-  }
-
-  .brand { display: flex; align-items: center; gap: 12px; }
-
-  .badge {
-    width: 46px;
-    height: 46px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    font-weight: 900;
-    color: #0a0f2b;
-    background: radial-gradient(circle at 30% 30%, #fff3c9, var(--gold));
-    box-shadow: 0 14px 40px rgba(0,0,0,0.45);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    position: relative;
-  }
-
-  .badge::after {
-    content: "";
-    position: absolute;
-    inset: -10px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(240,211,122,0.18), transparent 62%);
-    filter: blur(2px);
-    opacity: 0.85;
-    pointer-events: none;
-  }
-
-  .brandTitle { font-weight: 900; letter-spacing: 0.2px; }
-  .brandSub { color: var(--muted); font-size: 13px; margin-top: 2px; }
-
-  .stats { display: flex; gap: 14px; }
-  .stat {
-    background: rgba(0,0,0,0.20);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 10px 12px;
-    min-width: 160px;
-    box-shadow: 0 14px 40px rgba(0,0,0,0.35);
-    backdrop-filter: blur(10px);
-  }
-  .statLabel { font-size: 12px; color: var(--muted); letter-spacing: 0.2px; }
-  .statValue { margin-top: 4px; font-weight: 900; }
-
-  .shell {
-    display: grid;
-    grid-template-columns: 330px 1fr;
-    gap: 16px;
-    padding: 0 18px 18px 18px;
-  }
-
-  .ladderPanel, .gamePanel {
-    background: var(--panel);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow2);
-    backdrop-filter: blur(12px);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ladderPanel::before,
-  .gamePanel::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, rgba(240,211,122,0.10), transparent 35%, rgba(90,160,255,0.08), transparent 70%, rgba(240,211,122,0.10));
-    opacity: 0.9;
-    pointer-events: none;
-  }
-
-  .ladderPanel { padding: 14px; }
-  .panelTitle { font-weight: 900; margin-bottom: 10px; color: var(--gold); letter-spacing: 0.3px; }
-
-  .ladder {
-    margin: 0;
-    padding-left: 22px;
-    display: grid;
-    gap: 7px;
-  }
-
-  .ladder li {
-    list-style: decimal;
-    padding: 9px 10px;
-    border-radius: 14px;
-    background: rgba(0,0,0,0.22);
-    border: 1px solid rgba(255,255,255,0.10);
-    font-weight: 900;
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    position: relative;
-  }
-
-  .ladder li.safe {
-    border-color: rgba(43, 154, 90, 0.55);
-  }
-
-  .ladder li.active {
-    border-color: rgba(240,211,122,0.55);
-    background: rgba(240,211,122,0.12);
-    box-shadow: 0 10px 30px rgba(240,211,122,0.12);
-  }
-
-  .ladder li.active::after {
-    content: "";
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: -6px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(240,211,122,0.75), transparent);
-  }
-
-  .safetyNote { margin-top: 12px; color: var(--muted); font-size: 12px; }
-
-  .gamePanel { padding: 16px; min-height: 560px; }
-
-  .screen { display: none; position: relative; z-index: 1; }
-  .screen.active { display: block; }
-
-  .heroTitle { margin: 8px 0 10px 0; font-size: 32px; font-weight: 900; letter-spacing: 0.2px; }
-  .heroText { margin: 0 0 14px 0; color: var(--muted); max-width: 66ch; }
-
-  .startRow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-
-  .btn {
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.22);
-    color: var(--text);
-    padding: 11px 14px;
-    border-radius: 14px;
-    cursor: pointer;
-    font-weight: 900;
-    letter-spacing: 0.2px;
-    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
-    backdrop-filter: blur(10px);
-  }
-
-  .btn:hover { border-color: rgba(240, 211, 122, 0.45); }
-  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-  .btn.primary {
-    background: linear-gradient(180deg, rgba(240,211,122,0.26), rgba(185,139,42,0.16));
-    border-color: rgba(240, 211, 122, 0.55);
-  }
-
-  .btn.danger {
-    background: linear-gradient(180deg, rgba(198,59,59,0.22), rgba(198,59,59,0.10));
-    border-color: rgba(198, 59, 59, 0.55);
-  }
-
-  .rules {
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 16px;
-    background: rgba(0,0,0,0.24);
-    border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 14px 44px rgba(0,0,0,0.35);
-  }
-
-  .rules.hidden { display: none; }
-  .rulesTitle { font-weight: 900; color: var(--gold); margin-bottom: 8px; }
-  .rulesList { margin: 0; padding-left: 18px; color: var(--muted); }
-
-  .langRow { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 6px 0; }
-
-  .flagBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    border-radius: 16px;
-    padding: 10px 12px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.22);
-    cursor: pointer;
-    font-weight: 900;
-    color: var(--text);
-    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
-  }
-  .flagBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
-
-  .flagIcon {
-    width: 28px;
-    height: 18px;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.18);
-  }
-
-  .lifelines { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-
-  .lifeBtn {
-    border-radius: 999px;
-    padding: 10px 12px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.22);
-    color: var(--text);
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
-  }
-
-  .lifeBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
-
-  .questionCard {
-    padding: 14px;
-    border-radius: var(--radius);
-    background: rgba(8, 14, 38, 0.88);
-    border: 1px solid rgba(255,255,255,0.14);
-    box-shadow: var(--shadow2);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .questionCard::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(700px 220px at 50% -40px, rgba(240,211,122,0.12), transparent 60%),
-      radial-gradient(700px 220px at 50% 120%, rgba(80,140,255,0.10), transparent 62%);
-    pointer-events: none;
-  }
-
-  .questionMeta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; position: relative; z-index: 1; }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.20);
-    color: var(--muted);
-    font-weight: 900;
-  }
-
-  .pill.money { color: var(--gold); border-color: rgba(240,211,122,0.45); }
-
-  .questionText {
-    font-size: 21px;
-    font-weight: 900;
-    line-height: 1.25;
-    margin: 8px 0 14px 0;
-    position: relative;
-    z-index: 1;
-    text-shadow: 0 10px 30px rgba(0,0,0,0.45);
-  }
-
-  .answers {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .answerBtn {
-    text-align: left;
-    padding: 12px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.18));
-    color: var(--text);
-    cursor: pointer;
-    font-weight: 900;
-    letter-spacing: 0.2px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 12px 34px rgba(0,0,0,0.35);
-  }
-
-  .answerBtn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(240,211,122,0.10), transparent);
-    transform: translateX(-40%);
-    opacity: 0;
-    transition: opacity 160ms ease;
-    pointer-events: none;
-  }
-
-  .answerBtn:hover { border-color: rgba(240, 211, 122, 0.45); }
-  .answerBtn:hover::before { opacity: 1; }
-
-  .answerBtn.selected {
-    border-color: rgba(240,211,122,0.60);
-    box-shadow: 0 16px 44px rgba(240,211,122,0.12);
-  }
-
-  .answerBtn.correct {
-    border-color: rgba(43,154,90,0.70);
-    background: linear-gradient(180deg, rgba(43,154,90,0.18), rgba(0,0,0,0.16));
-  }
-
-  .answerBtn.wrong {
-    border-color: rgba(198,59,59,0.80);
-    background: linear-gradient(180deg, rgba(198,59,59,0.18), rgba(0,0,0,0.16));
-  }
-
-  .actionRow { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
-
-  .message { margin-top: 12px; color: var(--muted); min-height: 22px; position: relative; z-index: 1; }
-
-  .overlay {
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.74);
-    z-index: 50;
-    padding: 18px;
-  }
-  .overlay.active { display: flex; }
-
-  .overlayCard {
-    width: min(600px, 94vw);
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.16);
-    background: rgba(8, 14, 38, 0.92);
-    box-shadow: var(--shadow2);
-  }
-
-  .overlayTop {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-  }
-
-  .overlayTitle { font-weight: 900; color: var(--gold); }
-  .overlayClose {
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.22);
-    color: var(--text);
-    border-radius: 12px;
-    padding: 8px 10px;
-    cursor: pointer;
-    font-weight: 900;
-  }
-  .overlayClose:hover { border-color: rgba(240, 211, 122, 0.45); }
-
-  .overlayImg { display: block; width: 100%; height: auto; }
-  .overlayHint { padding: 10px 12px 12px 12px; color: var(--muted); font-size: 13px; }
-
-  .footer {
-    padding: 10px 18px 16px 18px;
-    color: var(--muted);
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  @media (max-width: 920px) {
-    .shell { grid-template-columns: 1fr; }
-    .answers { grid-template-columns: 1fr; }
-    .stat { min-width: 140px; }
-  }
+html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Arial;background:radial-gradient(circle at top,#101a40,#030616);color:#eef3ff}
+.screen{display:none}
+.screen.active{display:block}
+button{cursor:pointer;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:#111833;color:#eef3ff;font-weight:700;padding:10px 14px}
+button.primary{background:linear-gradient(#f0d37a,#b98b2a);color:#0a0f2b}
+button:disabled{opacity:.5}
+.top{display:flex;justify-content:space-between;padding:14px}
+.panel{background:rgba(10,18,48,.85);border-radius:18px;padding:14px;margin:14px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer{padding:12px;border-radius:999px;border:1px solid rgba(255,255,255,.2)}
+.answer.correct{border-color:#2b9a5a}
+.answer.wrong{border-color:#c63b3b}
+.lifelines{display:flex;gap:10px;margin-bottom:10px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center}
+.overlay.active{display:flex}
+.overlay img{max-width:90vw;border-radius:18px}
 </style>
+</head>
+
+<body>
+
+<div class="top">
+  <div>Weekend Millionairs kerst editie</div>
+  <div id="progress">0 / 15</div>
+</div>
+
+<div id="start" class="screen active panel">
+  <h2>Kies taal</h2>
+  <button onclick="setLang('nl')">Nederlands</button>
+  <button onclick="setLang('en')">English</button>
+  <br><br>
+  <button class="primary" onclick="startGame()">Start</button>
+</div>
+
+<div id="game" class="screen panel">
+  <div class="lifelines">
+    <button onclick="use5050()">50 50</button>
+    <button onclick="askHenk()">Vraag Henk om hulp</button>
+  </div>
+  <h3 id="question"></h3>
+  <div class="answers" id="answers"></div>
+  <br>
+  <button class="primary" onclick="finalAnswer()">Final answer</button>
+</div>
+
+<div id="end" class="screen panel">
+  <h2 id="endText"></h2>
+  <button class="primary" onclick="location.reload()">Opnieuw spelen</button>
+</div>
+
+<div id="henk" class="overlay" onclick="closeHenk()">
+  <div>
+    <img src="henk.jpg">
+    <p id="henkText"></p>
+  </div>
+</div>
+
+<script>
+const questions=[
+{q:{nl:"Wat is het Duitse woord voor kerst",en:"What is the German word for Christmas"},a:["Kerstag","Weihnachten","Christfest","Heiligabend"],c:1},
+{q:{nl:"Welke speler speelde voor Heerenveen Willem II NEC Twente Sparta en Arminia Bielefeld Romano",en:"Which player played for Heerenveen Willem II NEC Twente Sparta and Arminia Bielefeld Romano"},a:["Postema","Obodai","Denneboom","van Wolfswinkel"],c:2},
+{q:{nl:"In welke film wordt Kevin alleen thuis gelaten tijdens kerst",en:"In which film is Kevin left home alone at Christmas"},a:["Die Hard","Love Actually","Home Alone","The Santa Clause"],c:2},
+{q:{nl:"Wie zingt All I Want for Christmas Is You",en:"Who sings All I Want for Christmas Is You"},a:["Whitney Houston","Celine Dion","Ariana Grande","Mariah Carey"],c:3},
+{q:{nl:"In welke Duitse provincie ligt Baden Württemberg",en:"In which German state is Baden Württemberg located"},a:["Beieren","Baden Württemberg","Noordrijn Westfalen","Saksen"],c:1},
+{q:{nl:"Wie zingt Feliz Navidad",en:"Who sings Feliz Navidad"},a:["Ricky Martin","Julio Iglesias","Jose Feliciano","Santana"],c:2},
+{q:{nl:"Hoe zeg je gelukkig nieuwjaar in het Portugees",en:"How do you say happy new year in Portuguese"},a:["Feliz Natal","Bom Ano","Feliz Ano Novo","Boa Festa"],c:2},
+{q:{nl:"Wat is het wereldrecord 100 meter mannen",en:"What is the men's 100m world record"},a:["9.58","9.63","9.69","9.72"],c:0},
+{q:{nl:"Maak de Big Five compleet leeuw luipaard olifant neushoorn en",en:"Complete the Big Five lion leopard elephant rhino and"},a:["Buffel","Giraffe","Nijlpaard","Jachtluipaard"],c:0},
+{q:{nl:"Wie is Ajax topscorer aller tijden",en:"Who is Ajax all time top scorer"},a:["Van Basten","Bergkamp","Huntelaar","Piet van Reenen"],c:3},
+{q:{nl:"Wie zijn de Magnificent 7 Apple Microsoft Alphabet Tesla Amazon en",en:"Who are the Magnificent 7 Apple Microsoft Alphabet Tesla Amazon and"},a:["Meta Nvidia","Meta Netflix","Nvidia Netflix","Intel Meta"],c:0},
+{q:{nl:"Wat is de hoofdstad van Christmas Island",en:"What is the capital of Christmas Island"},a:["West Island","Drumsite","Silver City","Flying Fish Cove"],c:3},
+{q:{nl:"Wat is Spaans voor ui",en:"What is Spanish for onion"},a:["Ajo","Cebolla","Pimiento","Tomate"],c:1},
+{q:{nl:"In welk jaar verscheen de Coca Cola kersttruck",en:"In what year did the Coca Cola Christmas truck first appear"},a:["1985","1990","1995","2000"],c:2},
+{q:{nl:"Welk huisnummer heeft de familie McCallister",en:"What house number do the McCallisters live at"},a:["645","671","698","715"],c:1}
+];
+
+let lang="nl",i=0,selected=null;
+
+function setLang(l){lang=l}
+function startGame(){show("game");render()}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active")}
+function render(){
+document.getElementById("progress").innerText=(i+1)+" / 15";
+document.getElementById("question").innerText=questions[i].q[lang];
+const a=document.getElementById("answers");a.innerHTML="";
+questions[i].a.forEach((t,n)=>{
+const b=document.createElement("div");b.className="answer";b.innerText=String.fromCharCode(65+n)+". "+t;
+b.onclick=()=>{selected=n;document.querySelectorAll(".answer").forEach(x=>x.style.borderColor="");b.style.borderColor="#f0d37a"};
+a.appendChild(b);
+});
+}
+function finalAnswer(){
+if(selected===null)return;
+document.querySelectorAll(".answer").forEach((b,n)=>{
+if(n===questions[i].c)b.classList.add("correct");
+else if(n===selected)b.classList.add("wrong");
+});
+setTimeout(()=>{i++;if(i>=15)end();else{selected=null;render()}},1200);
+}
+function end(){show("end");document.getElementById("endText").innerText="Einde van het spel"}
+function use5050(){
+const q=questions[i];
+let wrong=[0,1,2,3].filter(n=>n!==q.c);
+wrong.splice(Math.floor(Math.random()*wrong.length),1);
+document.querySelectorAll(".answer").forEach((b,n)=>{if(wrong.includes(n)){b.style.opacity=.3;b.onclick=null}});
+}
+function askHenk(){
+document.getElementById("henk").classList.add("active");
+const h=document.getElementById("henkText");
+if(i<8){
+h.innerText=(lang==="nl"?"Henk zegt het antwoord is ":"Henk says the answer is ")+questions[i].a[questions[i].c];
+}else{
+h.innerText=lang==="nl"?"Ik ben maar een simpele Feyenoorder ik weet het ook niet":"I am just a simple Feyenoord supporter I do not know either";
+}
+setTimeout(closeHenk,15000);
+}
+function closeHenk(){document.getElementById("henk").classList.remove("active")}
+</script>
+
+</body>
+</html>
